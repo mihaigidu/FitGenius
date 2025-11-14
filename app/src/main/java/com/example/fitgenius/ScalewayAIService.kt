@@ -14,117 +14,87 @@ import java.util.concurrent.TimeUnit
 
 class ScalewayAIService {
     private val client = OkHttpClient.Builder()
-        .connectTimeout(60, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .writeTimeout(60, TimeUnit.SECONDS)
+        .connectTimeout(120, TimeUnit.SECONDS) // Increased timeout
+        .readTimeout(120, TimeUnit.SECONDS)
+        .writeTimeout(120, TimeUnit.SECONDS)
         .build()
 
-    // Lee la API key de forma segura
     private val apiKey = "5f59c373-d1bb-4d47-b323-004c6f133cc0" // ⚠️ REEMPLAZA ESTO
-
-    // URL de la API de Scaleway Generative APIs
-    // Región: fr-par (Paris) - Puedes usar también nl-ams (Amsterdam)
     private val apiUrl = "https://api.scaleway.ai/v1/chat/completions"
-
-    // Modelos disponibles en Scaleway (todos gratis):
-    // - llama-3.1-8b-instruct (rápido, bueno)
-    // - llama-3.1-70b-instruct (más potente, un poco más lento)
-    // - mistral-nemo-instruct-2407 (equilibrado)
     private val model = "llama-3.1-70b-instruct"
 
     suspend fun generateRoutineAndDiet(userProfile: UserProfile): AIResponse = withContext(Dispatchers.IO) {
-        try {
-            if (apiKey.isEmpty() || apiKey == "TU_SECRET_KEY_DE_SCALEWAY_AQUI") {
-                return@withContext AIResponse(
-                    routine = "❌ Error: API key no configurada.\n\n" +
-                            "Pasos para configurar:\n" +
-                            "1. Ve a https://console.scaleway.com/\n" +
-                            "2. Crea una cuenta gratis\n" +
-                            "3. Ve a IAM → API Keys\n" +
-                            "4. Crea una Secret Key\n" +
-                            "5. Agrégala en local.properties como:\n" +
-                            "   SCALEWAY_API_KEY=scw_xxxxx",
-                    diet = "Configura tu API key primero"
-                )
-            }
-
-            val prompt = buildPrompt(userProfile)
-            val response = callScalewayAPI(prompt)
-            parseResponse(response)
-
-        } catch (e: IOException) {
-            AIResponse(
-                routine = "❌ Error de conexión: ${e.message}\n\n" +
-                        "Verifica:\n" +
-                        "• Tu conexión a internet\n" +
-                        "• Que la API key sea válida (debe empezar con 'scw_')\n" +
-                        "• Que tu cuenta de Scaleway esté activa",
-                diet = "Error de conexión"
-            )
-        } catch (e: Exception) {
-            AIResponse(
-                routine = "❌ Error inesperado: ${e.message}",
-                diet = "Error al procesar"
-            )
-        }
+        val prompt = buildPrompt(userProfile)
+        val response = callScalewayAPI(prompt)
+        return@withContext parseResponse(response)
     }
 
     private fun buildPrompt(profile: UserProfile): String {
-        val menstrualInfo = if (profile.gender == "Mujer" && profile.menstrualPhase != null) {
-            "\n- Fase menstrual actual: ${profile.menstrualPhase}"
+        val menstrualPhase = profile.menstrualPhase
+        val menstrualInfo = if (profile.gender == "Mujer" && menstrualPhase != null) {
+            "\n- Fase menstrual actual: $menstrualPhase"
         } else ""
 
-        val ageInfo = if (profile.age != null) "\n- Edad: ${profile.age} años" else ""
-        val weightInfo = if (profile.weight != null) "\n- Peso: ${profile.weight} kg" else ""
-        val heightInfo = if (profile.height != null) "\n- Altura: ${profile.height} cm" else ""
-        val goalInfo = if (profile.goal != null) "\n- Objetivo: ${profile.goal}" else ""
-        val activityInfo = if (profile.activityLevel != null) "\n- Nivel de actividad: ${profile.activityLevel}" else ""
+        val favoriteExercisesInfo = if (profile.favoriteExercises.isNotEmpty()) {
+            "\n- Ejercicios favoritos: ${profile.favoriteExercises.joinToString()}"
+        } else ""
+
+        val allergiesInfo = if (profile.allergies.isNotBlank()) {
+            "\n- Alergias a tener en cuenta: ${profile.allergies}"
+        } else ""
+
+        val foodPreferencesInfo = if (profile.foodPreferences.isNotBlank()) {
+            "\n- Preferencias alimentarias: ${profile.foodPreferences}"
+        } else ""
 
         return """
-Eres un experto entrenador personal y nutricionista certificado. Analiza cuidadosamente el perfil del usuario y genera un plan 100% personalizado y único.
+Eres un experto entrenador personal y nutricionista de élite. Analiza el siguiente perfil de usuario para crear un plan semanal completo, detallado y 100% personalizado.
 
-PERFIL DEL USUARIO:
+**PERFIL DEL USUARIO:**
 - Nombre: ${profile.name}
-- Género: ${profile.gender}$menstrualInfo$ageInfo$weightInfo$heightInfo$goalInfo$activityInfo
+- Género: ${profile.gender}$menstrualInfo
+- Edad: ${profile.age} años
+- Peso: ${profile.weight} kg
+- Altura: ${profile.height} cm
+- Objetivo Principal: ${profile.goal}
+- Nivel de Actividad Física: ${profile.activityLevel}
 
-IMPORTANTE: Genera un plan COMPLETAMENTE PERSONALIZADO basado en estos datos específicos. NO uses plantillas genéricas.
+**PREFERENCIAS DE ENTRENAMIENTO:**
+- Días de entrenamiento por semana: ${profile.trainingDays}
+- Lugar de entrenamiento: ${profile.trainingLocation}$favoriteExercisesInfo
 
-SECCIÓN 1: RUTINA DE EJERCICIOS PERSONALIZADA
-Crea un plan semanal detallado que incluya:
-- Días específicos de entrenamiento (Ejemplo: Lunes, Miércoles, Viernes)
-- Ejercicios concretos con nombres específicos
-- Series y repeticiones exactas para cada ejercicio
-- Tiempo de descanso entre series
-- Duración total de cada sesión
-- Calentamiento específico (5-10 min)
-- Enfriamiento y estiramientos (5-10 min)
-${if (profile.gender == "Mujer" && profile.menstrualPhase != null) {
-            "- ADAPTA la intensidad considerando la fase ${profile.menstrualPhase} (en esta fase se recomienda: ${getMenstrualPhaseAdvice(profile.menstrualPhase)})"
+**PREFERENCIAS DE DIETA:**$allergiesInfo$foodPreferencesInfo
+
+**INSTRUCCIONES DETALLADAS:**
+
+**SECCIÓN 1: RUTINA DE ENTRENAMIENTO SEMANAL**
+Crea un plan de entrenamiento para los **${profile.trainingDays} días** especificados. Para cada día de entrenamiento:
+- Asigna un nombre al día (Ej: Día 1: Pecho y Tríceps, Día 2: Pierna, etc.).
+- Detalla los ejercicios específicos para el lugar de entrenamiento (${profile.trainingLocation}).
+- Incluye series, repeticiones y tiempos de descanso para CADA ejercicio.
+- Adapta la rutina al objetivo (${profile.goal}) y al nivel de actividad (${profile.activityLevel}).
+- Si el usuario especificó ejercicios favoritos, intégralos de forma lógica en la rutina.
+- Proporciona una sección de calentamiento (5-10 min) y enfriamiento (5-10 min) para cada sesión.
+${if (profile.gender == "Mujer" && menstrualPhase != null) {
+            "- **IMPORTANTE:** Adapta la intensidad y tipo de ejercicio a la fase menstrual actual ($menstrualPhase). Recomienda: ${getMenstrualPhaseAdvice(menstrualPhase)}."
         } else ""}
-- Consejos de progresión semana a semana
-- Variaciones según el nivel actual
 
-SECCIÓN 2: PLAN DE DIETA PERSONALIZADO
-Calcula y proporciona:
-- Calorías diarias exactas basadas en: peso=${profile.weight}kg, altura=${profile.height}cm, objetivo=${profile.goal}, actividad=${profile.activityLevel}
-- Distribución precisa de macronutrientes (gramos de proteína, carbohidratos y grasas)
-- Menú completo para UN DÍA con 5 comidas:
-  * Desayuno (hora sugerida + alimentos específicos + cantidades)
-  * Media mañana (hora + alimentos + cantidades)
-  * Almuerzo (hora + alimentos + cantidades)
-  * Merienda (hora + alimentos + cantidades)
-  * Cena (hora + alimentos + cantidades)
-- Plan de hidratación específico (litros por día)
-- Suplementos recomendados si aplican para el objetivo
-- Alimentos a evitar o limitar
-- Timing de nutrientes (cuándo comer qué)
+**SECCIÓN 2: PLAN DE DIETA SEMANAL COMPLETO**
+Calcula las necesidades calóricas y de macronutrientes diarias exactas. Luego, genera un menú detallado para **TODA LA SEMANA (Lunes a Domingo)**. Para CADA DÍA de la semana:
+- Muestra el total de calorías y la distribución de macros (proteínas, carbohidratos, grasas) para ese día.
+- Detalla 5 comidas (Desayuno, Media Mañana, Almuerzo, Merienda, Cena) con:
+  - Alimentos específicos y cantidades precisas (en gramos).
+  - Horarios sugeridos.
+- **IMPORTANTE:** El plan debe excluir estrictamente cualquier alérgeno mencionado (${profile.allergies}).
+- Adapta las comidas a las preferencias del usuario (${profile.foodPreferences}).
+- Incluye un plan de hidratación diario (en litros).
 
-FORMATO DE RESPUESTA:
-Primero escribe toda la RUTINA DE EJERCICIOS completa.
-Después escribe EXACTAMENTE esto en una línea: ===DIETA===
-Luego escribe todo el PLAN DE DIETA completo.
+**FORMATO DE RESPUESTA OBLIGATORIO:**
+Primero, escribe la **RUTINA DE ENTRENAMIENTO SEMANAL** completa.
+Luego, en una nueva línea, escribe exactamente: `===DIETA===`
+Finalmente, escribe el **PLAN DE DIETA SEMANAL COMPLETO**.
 
-Sé muy específico con cantidades, nombres de ejercicios, horarios y porciones. Usa emojis para mejor visualización. El tono debe ser motivador y profesional.
+Usa un tono motivador y profesional. Utiliza emojis para hacer la lectura más amena.
         """.trimIndent()
     }
 
@@ -139,7 +109,6 @@ Sé muy específico con cantidades, nombres de ejercicios, horarios y porciones.
     }
 
     private fun callScalewayAPI(prompt: String): String {
-        // Construcción del JSON según la API de Scaleway (formato OpenAI-compatible)
         val jsonBody = JSONObject().apply {
             put("model", model)
             put("messages", JSONArray().apply {
@@ -152,8 +121,8 @@ Sé muy específico con cantidades, nombres de ejercicios, horarios y porciones.
                     put("content", prompt)
                 })
             })
-            put("temperature", 0.8) // Mayor creatividad para respuestas únicas
-            put("max_tokens", 3000) // Suficiente para respuestas detalladas
+            put("temperature", 0.8) 
+            put("max_tokens", 4096) // Increased for weekly plan
             put("top_p", 0.9)
             put("stream", false)
         }
@@ -180,12 +149,7 @@ Sé muy específico con cantidades, nombres de ejercicios, horarios y porciones.
                 }
 
                 throw IOException(
-                    "Error ${response.code}: $errorMsg\n\n" +
-                            "Verifica:\n" +
-                            "1. Que tu Secret Key de Scaleway sea correcta (empieza con 'scw_')\n" +
-                            "2. Que tu cuenta esté activa\n" +
-                            "3. Que tengas conexión a internet\n" +
-                            "4. Región configurada correctamente"
+                    "Error ${response.code}: $errorMsg"
                 )
             }
 
@@ -197,43 +161,19 @@ Sé muy específico con cantidades, nombres de ejercicios, horarios y porciones.
         try {
             val json = JSONObject(jsonResponse)
             val choices = json.getJSONArray("choices")
-
             if (choices.length() == 0) {
                 throw Exception("No se generó ninguna respuesta de la IA")
             }
-
             val message = choices.getJSONObject(0).getJSONObject("message")
             val fullText = message.getString("content").trim()
 
-            // Separar rutina y dieta usando el delimitador
-            val sections = fullText.split("===DIETA===", ignoreCase = true)
-
-            val routine = if (sections.isNotEmpty()) {
-                sections[0].trim().ifEmpty {
-                    "❌ No se pudo generar la rutina correctamente"
-                }
-            } else {
-                "❌ Error al procesar la rutina"
-            }
-
-            val diet = if (sections.size > 1) {
-                sections[1].trim().ifEmpty {
-                    "❌ No se pudo generar la dieta correctamente"
-                }
-            } else {
-                // Si no encuentra el separador, intentar buscar la palabra "dieta"
-                val dietIndex = fullText.indexOf("PLAN DE DIETA", ignoreCase = true)
-                if (dietIndex != -1) {
-                    fullText.substring(dietIndex).trim()
-                } else {
-                    "⚠️ No se pudo separar la dieta del plan completo.\n\nPlan completo generado:\n\n$fullText"
-                }
-            }
+            val sections = fullText.split("===DIETA===", ignoreCase = true, limit = 2)
+            val routine = sections.getOrNull(0)?.trim() ?: ""
+            val diet = sections.getOrNull(1)?.trim() ?: ""
 
             return AIResponse(routine = routine, diet = diet)
-
         } catch (e: Exception) {
-            throw Exception("Error al procesar la respuesta de Scaleway: ${e.message}\n\nRespuesta recibida: $jsonResponse")
+            throw Exception("Error al procesar la respuesta de Scaleway: ${e.message}")
         }
     }
 }

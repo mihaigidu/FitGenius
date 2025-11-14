@@ -7,6 +7,7 @@ import androidx.navigation.compose.composable
 import com.example.fitgenius.data.UserProfile
 import com.example.fitgenius.screens.HomeScreen
 import com.example.fitgenius.screens.LoginScreen
+import com.example.fitgenius.screens.ProfileFormScreen
 import com.example.fitgenius.screens.RegisterScreen
 
 @Composable
@@ -14,6 +15,7 @@ fun NavGraph(
     navController: NavHostController,
     currentUserProfile: UserProfile?,
     onUserRegistered: (UserProfile) -> Unit,
+    onProfileComplete: (UserProfile) -> Unit,
     startDestination: String = "login"
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
@@ -23,8 +25,20 @@ fun NavGraph(
         composable("register") {
             RegisterScreen(
                 navController = navController,
-                onUserRegistered = onUserRegistered
+                onUserRegistered = {
+                    onUserRegistered(it)
+                    navController.navigate("profile_form")
+                }
             )
+        }
+        composable("profile_form") {
+            if (currentUserProfile != null) {
+                ProfileFormScreen(
+                    navController = navController,
+                    userProfile = currentUserProfile,
+                    onProfileComplete = onProfileComplete
+                )
+            }
         }
         composable("home") {
             HomeScreen(navController, currentUserProfile)

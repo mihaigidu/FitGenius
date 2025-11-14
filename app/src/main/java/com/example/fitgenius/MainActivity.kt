@@ -34,6 +34,9 @@ class MainActivity : ComponentActivity() {
                         currentUserProfile = currentUserProfile,
                         onUserRegistered = { profile ->
                             currentUserProfile = profile
+                        },
+                        onProfileComplete = { profile ->
+                            currentUserProfile = profile
                         }
                     )
                 }
