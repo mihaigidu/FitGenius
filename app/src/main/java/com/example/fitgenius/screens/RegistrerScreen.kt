@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import com.example.fitgenius.UserProfile
+import com.example.fitgenius.data.UserProfile
 
 @Composable
 fun RegisterScreen(navController: NavController, onUserRegistered: (UserProfile) -> Unit) {
@@ -106,13 +106,14 @@ fun RegisterScreen(navController: NavController, onUserRegistered: (UserProfile)
         Spacer(Modifier.height(24.dp))
         Button(onClick = {
             val userProfile = UserProfile(
+                id = "", // You might want to generate a unique ID here
                 name = name,
                 email = email,
                 gender = gender,
                 menstrualPhase = if (gender == "Mujer") menstrualPhase else null,
-                age = age.toIntOrNull(),
-                weight = weight.toDoubleOrNull(),
-                height = height.toDoubleOrNull(),
+                age = age.toIntOrNull() ?: 0,
+                weight = weight.toDoubleOrNull() ?: 0.0,
+                height = height.toDoubleOrNull() ?: 0.0,
                 goal = goal,
                 activityLevel = activityLevel
             )

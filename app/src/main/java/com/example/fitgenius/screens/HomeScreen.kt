@@ -1,127 +1,126 @@
-
 package com.example.fitgenius.screens
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Tab
+import androidx.compose.material3.TabRow
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.fitgenius.ScalewayAIService
-import com.example.fitgenius.UserProfile
+import com.example.fitgenius.data.AIResponse
+import com.example.fitgenius.data.UserProfile
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController, userProfile: UserProfile?) {
-    var routine by remember { mutableStateOf("Pulsa el botón para generar tu rutina personalizada con IA") }
-    var diet by remember { mutableStateOf("Pulsa el botón para generar tu dieta personalizada con IA") }
+    val scope = rememberCoroutineScope()
+    val scalewayAIService = remember { ScalewayAIService() }
+
+    var aiResponse by remember { mutableStateOf<AIResponse?>(null) }
     var isLoading by remember { mutableStateOf(false) }
-    var showDiet by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-    val aiService = remember { ScalewayAIService() }
-    val coroutineScope = rememberCoroutineScope()
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-            .verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Top
-    ) {
-        Spacer(Modifier.height(32.dp))
-        Text(
-            "¡Hola ${userProfile?.name ?: "Usuario"}! 👋",
-            style = MaterialTheme.typography.headlineMedium
-        )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            "Tu plan personalizado con IA",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(24.dp))
-
-        // Tabs para rutina y dieta
-        TabRow(selectedTabIndex = if (showDiet) 1 else 0) {
-            Tab(
-                selected = !showDiet,
-                onClick = { showDiet = false },
-                text = { Text("Rutina 💪") }
-            )
-            Tab(
-                selected = showDiet,
-                onClick = { showDiet = true },
-                text = { Text("Dieta 🥗") }
-            )
-        }
-
-        Spacer(Modifier.height(16.dp))
-
-        if (isLoading) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(16.dp))
-            Text("✨ Generando tu plan personalizado con IA...")
-            Spacer(Modifier.height(8.dp))
-            Text(
-                "Analizando tu perfil y creando un plan único para ti...",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                "Esto puede tomar 10-20 segundos",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        } else {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text(
-                        text = if (showDiet) diet else routine,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
+    LaunchedEffect(userProfile) {
+        if (userProfile != null) {
+            scope.launch {
+                isLoading = true
+                errorMessage = null
+                try {
+                    aiResponse = scalewayAIService.generateRoutineAndDiet(userProfile)
+                } catch (e: Exception) {
+                    errorMessage = "Error: ${e.message}"
+                } finally {
+                    isLoading = false
                 }
             }
         }
+    }
 
-        Spacer(Modifier.height(24.dp))
-
-        Button(
-            onClick = {
-                if (userProfile != null) {
-                    isLoading = true
-                    coroutineScope.launch {
-                        val response = aiService.generateRoutineAndDiet(userProfile)
-                        routine = response.routine
-                        diet = response.diet
-                        isLoading = false
-                    }
-                } else {
-                    routine = "❌ Error: No hay perfil de usuario disponible"
-                    diet = "Por favor, completa el registro primero"
-                }
-            },
-            enabled = !isLoading,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("✨ Generar Plan con IA (Scaleway)")
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        if (userProfile != null) {
-            Text(
-                "Perfil: ${userProfile.goal ?: "No definido"} | " +
-                        "Actividad: ${userProfile.activityLevel ?: "No definido"}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Tu Plan Personalizado") }
             )
         }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            if (userProfile == null) {
+                Text("No se ha proporcionado un perfil de usuario.")
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { navController.navigate("register") { popUpTo("login") } }) {
+                    Text("Crear un Perfil")
+                }
+            } else if (isLoading) {
+                CircularProgressIndicator()
+                Spacer(Modifier.height(16.dp))
+                Text("Generando tu plan con IA...", style = MaterialTheme.typography.bodyLarge)
+                Text("Esto puede tardar hasta un minuto.", style = MaterialTheme.typography.bodySmall)
+            } else if (errorMessage != null) {
+                Text("Ha ocurrido un error:", color = MaterialTheme.colorScheme.error)
+                Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
+            } else if (aiResponse != null) {
+                Tabs(aiResponse!!)
+            }
+        }
+    }
+}
+
+@Composable
+fun Tabs(aiResponse: AIResponse) {
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("Rutina", "Dieta")
+
+    Column {
+        TabRow(selectedTabIndex = selectedTab) {
+            tabs.forEachIndexed { index, title ->
+                Tab(
+                    selected = selectedTab == index,
+                    onClick = { selectedTab = index },
+                    text = { Text(title) }
+                )
+            }
+        }
+        Spacer(Modifier.height(16.dp))
+        when (selectedTab) {
+            0 -> Content(aiResponse.routine)
+            1 -> Content(aiResponse.diet)
+        }
+    }
+}
+
+@Composable
+fun Content(text: String) {
+    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+        Text(text, style = MaterialTheme.typography.bodyMedium)
     }
 }

@@ -1,5 +1,7 @@
 package com.example.fitgenius
 
+import com.example.fitgenius.data.AIResponse
+import com.example.fitgenius.data.UserProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.*

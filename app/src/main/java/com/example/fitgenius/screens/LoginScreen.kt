@@ -1,8 +1,13 @@
 package com.example.fitgenius.screens
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.material3.Button
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -10,47 +15,19 @@ import androidx.navigation.NavController
 
 @Composable
 fun LoginScreen(navController: NavController) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-
     Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text("Bienvenido a FitGenius", style = MaterialTheme.typography.headlineMedium)
-        Spacer(Modifier.height(24.dp))
-        
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Correo") }
-        )
-        Spacer(Modifier.height(8.dp))
-        
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Contraseña") }
-        )
-        
-        Spacer(Modifier.height(24.dp))
-        
-        Button(onClick = {
-            // Por ahora, redirige al registro para capturar el perfil
-            navController.navigate("register")
-        }) {
-            Text("Iniciar sesión")
+        Text("FitGenius", style = androidx.compose.material3.MaterialTheme.typography.headlineLarge)
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = { navController.navigate("register") }) {
+            Text("Registrarse")
         }
-        
-        Spacer(Modifier.height(8.dp))
-        
-        TextButton(onClick = {
-            navController.navigate("register")
-        }) {
-            Text("¿No tienes cuenta? Regístrate")
+        Spacer(modifier = Modifier.height(8.dp))
+        Button(onClick = { /* Lógica de inicio de sesión aquí */ navController.navigate("home") }) {
+            Text("Iniciar Sesión (Demo)")
         }
     }
 }
