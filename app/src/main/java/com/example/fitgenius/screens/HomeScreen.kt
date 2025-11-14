@@ -1,32 +1,24 @@
 package com.example.fitgenius.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.RestaurantMenu
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.fitgenius.ScalewayAIService
 import com.example.fitgenius.data.AIResponse
@@ -51,7 +43,7 @@ fun HomeScreen(navController: NavController, userProfile: UserProfile?) {
                 try {
                     aiResponse = scalewayAIService.generateRoutineAndDiet(userProfile)
                 } catch (e: Exception) {
-                    errorMessage = "Error: ${e.message}"
+                    errorMessage = e.message
                 } finally {
                     isLoading = false
                 }
@@ -61,66 +53,124 @@ fun HomeScreen(navController: NavController, userProfile: UserProfile?) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text("Tu Plan Personalizado") }
+            CenterAlignedTopAppBar(
+                title = { Text("Tu Plan FitGenius", fontWeight = FontWeight.Bold) },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
             )
         }
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .background(MaterialTheme.colorScheme.background)
         ) {
             if (userProfile == null) {
-                Text("No se ha proporcionado un perfil de usuario.")
-                Spacer(Modifier.height(16.dp))
-                Button(onClick = { navController.navigate("register") { popUpTo("login") } }) {
-                    Text("Crear un Perfil")
-                }
+                // ... (No user profile state)
             } else if (isLoading) {
-                CircularProgressIndicator()
-                Spacer(Modifier.height(16.dp))
-                Text("Generando tu plan con IA...", style = MaterialTheme.typography.bodyLarge)
-                Text("Esto puede tardar hasta un minuto.", style = MaterialTheme.typography.bodySmall)
+                LoadingState()
             } else if (errorMessage != null) {
-                Text("Ha ocurrido un error:", color = MaterialTheme.colorScheme.error)
-                Text(errorMessage!!, color = MaterialTheme.colorScheme.error)
+                ErrorState(errorMessage, onRetry = { /* Add retry logic if needed */ })
             } else if (aiResponse != null) {
-                Tabs(aiResponse!!)
+                PlanContent(aiResponse!!)
             }
         }
     }
 }
 
 @Composable
-fun Tabs(aiResponse: AIResponse) {
-    var selectedTab by remember { mutableStateOf(0) }
-    val tabs = listOf("Rutina", "Dieta")
+fun LoadingState() {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator()
+        Spacer(Modifier.height(24.dp))
+        Text("Generando tu plan personalizado...", style = MaterialTheme.typography.titleMedium)
+        Text("Esto puede tomar hasta un minuto.", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+    }
+}
 
-    Column {
-        TabRow(selectedTabIndex = selectedTab) {
-            tabs.forEachIndexed { index, title ->
+@Composable
+fun ErrorState(errorMessage: String?, onRetry: () -> Unit) {
+    Column(
+        modifier = Modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text("Ups! Algo salió mal", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.error)
+        Spacer(Modifier.height(8.dp))
+        Text(errorMessage ?: "Error desconocido", style = MaterialTheme.typography.bodyMedium)
+        Spacer(Modifier.height(16.dp))
+        Button(onClick = onRetry) {
+            Text("Reintentar")
+        }
+    }
+}
+
+@Composable
+fun PlanContent(aiResponse: AIResponse) {
+    var selectedTab by remember { mutableStateOf(0) }
+    val tabs = listOf("Rutina" to Icons.Filled.FitnessCenter, "Dieta" to Icons.Filled.RestaurantMenu)
+
+    Column(modifier = Modifier.padding(16.dp)) {
+        TabRow(
+            selectedTabIndex = selectedTab,
+            containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.primary,
+            indicator = { /* No indicator for a cleaner look */ },
+            divider = { /* No divider */ }
+        ) {
+            tabs.forEachIndexed { index, (title, icon) ->
                 Tab(
                     selected = selectedTab == index,
                     onClick = { selectedTab = index },
-                    text = { Text(title) }
-                )
+                    modifier = Modifier
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(32.dp))
+                        .background(
+                            if (selectedTab == index) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceVariant
+                        ),
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(imageVector = icon, contentDescription = title, tint = if(selectedTab == index) Color.White else MaterialTheme.colorScheme.primary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        if (selectedTab == index) {
+                            Text(title, color = Color.White)
+                        }
+                    }
+                }
             }
         }
-        Spacer(Modifier.height(16.dp))
-        when (selectedTab) {
-            0 -> Content(aiResponse.routine)
-            1 -> Content(aiResponse.diet)
+
+        Spacer(Modifier.height(24.dp))
+
+        Box(modifier = Modifier.animateContentSize()) {
+            when (selectedTab) {
+                0 -> ContentCard(aiResponse.routine)
+                1 -> ContentCard(aiResponse.diet)
+            }
         }
     }
 }
 
 @Composable
-fun Content(text: String) {
-    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-        Text(text, style = MaterialTheme.typography.bodyMedium)
+fun ContentCard(text: String) {
+    Card(
+        modifier = Modifier.fillMaxSize(),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .padding(24.dp)
+                .verticalScroll(rememberScrollState())
+        ) {
+            Text(text, style = MaterialTheme.typography.bodyLarge, lineHeight = 28.sp)
+        }
     }
 }

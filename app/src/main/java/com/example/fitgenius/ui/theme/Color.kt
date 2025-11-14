@@ -2,10 +2,11 @@ package com.example.fitgenius.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+// Paleta de colores moderna y sofisticada
+val DarkGreen = Color(0xFF003844)
+val Teal = Color(0xFF006C67)
+val LightTeal = Color(0xFF9FFFCB)
+val OrangeAccent = Color(0xFFFFA500)
+val OffWhite = Color(0xFFF2F2F2)
+val DarkGrey = Color(0xFF121212) // Fondo oscuro
+val LightGrey = Color(0xFF282828) // Superficies oscuras
