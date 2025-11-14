@@ -68,6 +68,7 @@ Eres un experto entrenador personal y nutricionista de élite. Analiza el siguie
 **INSTRUCCIONES DETALLADAS:**
 
 **SECCIÓN 1: RUTINA DE ENTRENAMIENTO SEMANAL**
+Crea todo lo siguiente que te voy a pedir de la forma mas rapido que puedas como si fueras un entrenador profesional:
 Crea un plan de entrenamiento para los **${profile.trainingDays} días** especificados. Para cada día de entrenamiento:
 - Asigna un nombre al día (Ej: Día 1: Pecho y Tríceps, Día 2: Pierna, etc.).
 - Detalla los ejercicios específicos para el lugar de entrenamiento (${profile.trainingLocation}).
@@ -80,6 +81,7 @@ ${if (profile.gender == "Mujer" && menstrualPhase != null) {
         } else ""}
 
 **SECCIÓN 2: PLAN DE DIETA SEMANAL COMPLETO**
+Crea todo lo siguiente que te voy a pedir de la forma mas rapido que puedas como si fueras un dieditsta profesional:
 Calcula las necesidades calóricas y de macronutrientes diarias exactas. Luego, genera un menú detallado para **TODA LA SEMANA (Lunes a Domingo)**. Para CADA DÍA de la semana:
 - Muestra el total de calorías y la distribución de macros (proteínas, carbohidratos, grasas) para ese día.
 - Detalla 5 comidas (Desayuno, Media Mañana, Almuerzo, Merienda, Cena) con:
@@ -90,6 +92,7 @@ Calcula las necesidades calóricas y de macronutrientes diarias exactas. Luego, 
 - Incluye un plan de hidratación diario (en litros).
 
 **FORMATO DE RESPUESTA OBLIGATORIO:**
+Para cada día de la rutina y de la dieta, **SIEMPRE** empieza la sección con el título del día en negrita y entre dos asteriscos. Por ejemplo: `**Día 1: Pecho y Tríceps**` o `**Lunes**`. Este formato es crucial para que la app pueda mostrar la información correctamente.
 Primero, escribe la **RUTINA DE ENTRENAMIENTO SEMANAL** completa.
 Luego, en una nueva línea, escribe exactamente: `===DIETA===`
 Finalmente, escribe el **PLAN DE DIETA SEMANAL COMPLETO**.
