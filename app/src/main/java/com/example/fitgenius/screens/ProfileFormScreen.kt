@@ -16,25 +16,41 @@ import com.example.fitgenius.data.UserProfile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileFormScreen(navController: NavController, userProfile: UserProfile, onProfileComplete: (UserProfile) -> Unit) {
+fun ProfileFormScreen(
+    navController: NavController,
+    userProfile: UserProfile,
+    onProfileComplete: (UserProfile) -> Unit,
+    isEditing: Boolean = false
+) {
     var profileState by remember(userProfile) { mutableStateOf(userProfile) }
 
     val exerciseOptions = listOf("Correr", "Nadar", "Ciclismo", "Levantamiento de pesas", "Yoga", "Pilates", "CrossFit")
 
     Scaffold(
-        topBar = { TopAppBar(title = { Text("Paso 2 de 2: Completa tu Perfil") }) },
+        topBar = {
+            TopAppBar(title = {
+                Text(if (isEditing) "Editar Perfil" else "Paso 2 de 2: Completa tu Perfil")
+            })
+        },
         bottomBar = {
             Button(
                 onClick = {
                     onProfileComplete(profileState)
-                    navController.navigate("home") {
-                        popUpTo("login") { inclusive = true }
+                    if (isEditing) {
+                        navController.popBackStack()
+                    } else {
+                        navController.navigate("home") {
+                            popUpTo("login") { inclusive = true }
+                        }
                     }
                 },
                 modifier = Modifier.fillMaxWidth().padding(16.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
             ) {
-                Text("Crear Perfil y Generar Plan", color = MaterialTheme.colorScheme.onTertiary)
+                Text(
+                    text = if (isEditing) "Guardar Cambios" else "Crear Perfil y Generar Plan",
+                    color = MaterialTheme.colorScheme.onTertiary
+                )
             }
         }
     ) { paddingValues ->

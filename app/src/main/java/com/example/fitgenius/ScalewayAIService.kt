@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 
 class ScalewayAIService {
     private val client = OkHttpClient.Builder()
-        .connectTimeout(120, TimeUnit.SECONDS) // Increased timeout
+        .connectTimeout(120, TimeUnit.SECONDS)
         .readTimeout(120, TimeUnit.SECONDS)
         .writeTimeout(120, TimeUnit.SECONDS)
         .build()
@@ -47,8 +47,9 @@ class ScalewayAIService {
             "\n- Preferencias alimentarias: ${profile.foodPreferences}"
         } else ""
 
+        // NUEVO: Prompt mejorado con instrucciones más estrictas
         return """
-Eres un experto entrenador personal y nutricionista de élite. Analiza el siguiente perfil de usuario para crear un plan semanal completo, detallado y 100% personalizado.
+Eres un experto entrenador personal y nutricionista de élite. Tu misión es crear un plan semanal 100% personalizado, detallado y con un formato muy específico.
 
 **PERFIL DEL USUARIO:**
 - Nombre: ${profile.name}
@@ -65,39 +66,32 @@ Eres un experto entrenador personal y nutricionista de élite. Analiza el siguie
 
 **PREFERENCIAS DE DIETA:**$allergiesInfo$foodPreferencesInfo
 
-**INSTRUCCIONES DETALLADAS:**
+**INSTRUCCIONES DE FORMATO (MUY IMPORTANTE):**
+La respuesta DEBE seguir esta estructura de formato para que la aplicación la pueda interpretar. NO uses negrita ni asteriscos en los títulos.
 
 **SECCIÓN 1: RUTINA DE ENTRENAMIENTO SEMANAL**
-Crea todo lo siguiente que te voy a pedir de la forma mas rapido que puedas como si fueras un entrenador profesional:
-Crea un plan de entrenamiento para los **${profile.trainingDays} días** especificados. Para cada día de entrenamiento:
-- Asigna un nombre al día (Ej: Día 1: Pecho y Tríceps, Día 2: Pierna, etc.).
-- Detalla los ejercicios específicos para el lugar de entrenamiento (${profile.trainingLocation}).
-- Incluye series, repeticiones y tiempos de descanso para CADA ejercicio.
-- Adapta la rutina al objetivo (${profile.goal}) y al nivel de actividad (${profile.activityLevel}).
-- Si el usuario especificó ejercicios favoritos, intégralos de forma lógica en la rutina.
-- Proporciona una sección de calentamiento (5-10 min) y enfriamiento (5-10 min) para cada sesión.
+Crea un plan para los **${profile.trainingDays} días** especificados. Para CADA día de entrenamiento, usa el siguiente formato:
+- **TÍTULO OBLIGATORIO:** El título DEBE empezar con `Día X:` seguido de los grupos musculares principales. Ejemplo: `Día 1: Pecho y Tríceps`.
+- Detalla los ejercicios para el lugar de entrenamiento (${profile.trainingLocation}) con series, repeticiones y descansos.
+- Incluye una sección de calentamiento y enfriamiento para cada sesión.
 ${if (profile.gender == "Mujer" && menstrualPhase != null) {
-            "- **IMPORTANTE:** Adapta la intensidad y tipo de ejercicio a la fase menstrual actual ($menstrualPhase). Recomienda: ${getMenstrualPhaseAdvice(menstrualPhase)}."
+            "- **ADAPTACIÓN MENSTRUAL:** Adapta la intensidad a la fase ($menstrualPhase) recomendando: ${getMenstrualPhaseAdvice(menstrualPhase)}."
         } else ""}
 
-**SECCIÓN 2: PLAN DE DIETA SEMANAL COMPLETO**
-Crea todo lo siguiente que te voy a pedir de la forma mas rapido que puedas como si fueras un dieditsta profesional:
-Calcula las necesidades calóricas y de macronutrientes diarias exactas. Luego, genera un menú detallado para **TODA LA SEMANA (Lunes a Domingo)**. Para CADA DÍA de la semana:
-- Muestra el total de calorías y la distribución de macros (proteínas, carbohidratos, grasas) para ese día.
-- Detalla 5 comidas (Desayuno, Media Mañana, Almuerzo, Merienda, Cena) con:
-  - Alimentos específicos y cantidades precisas (en gramos).
-  - Horarios sugeridos.
-- **IMPORTANTE:** El plan debe excluir estrictamente cualquier alérgeno mencionado (${profile.allergies}).
-- Adapta las comidas a las preferencias del usuario (${profile.foodPreferences}).
-- Incluye un plan de hidratación diario (en litros).
+**SECCIÓN 2: PLAN DE DIETA SEMANAL**
+Genera un plan de comidas detallado para **6 días (Lunes a Sábado)**. El **Domingo** es un **DÍA LIBRE** (cheat day) y no debes generar un plan para él, solo mencionarlo al final de la sección de dieta.
+Para CADA UNO de los 6 días, usa el siguiente formato:
+- **TÍTULO OBLIGATORIO:** El título DEBE ser el día de la semana, seguido de dos puntos y un recuento de las calorías totales aproximadas. Ejemplo: `Lunes: ~2250 kcal`.
+- Detalla 5 comidas (Desayuno, Media Mañana, Almuerzo, Merienda, Cena) con alimentos y cantidades.
+- El plan DEBE excluir estrictamente los alérgenos: ${profile.allergies}.
+- Incluye un plan de hidratación diario.
 
-**FORMATO DE RESPUESTA OBLIGATORIO:**
-Para cada día de la rutina y de la dieta, **SIEMPRE** empieza la sección con el título del día en negrita y entre dos asteriscos. Por ejemplo: `**Día 1: Pecho y Tríceps**` o `**Lunes**`. Este formato es crucial para que la app pueda mostrar la información correctamente.
-Primero, escribe la **RUTINA DE ENTRENAMIENTO SEMANAL** completa.
-Luego, en una nueva línea, escribe exactamente: `===DIETA===`
-Finalmente, escribe el **PLAN DE DIETA SEMANAL COMPLETO**.
+**ESTRUCTURA FINAL DE LA RESPUESTA:**
+1. Primero, la **RUTINA DE ENTRENAMIENTO SEMANAL** completa.
+2. Luego, en una nueva línea, escribe la palabra clave `===DIETA===`.
+3. Finalmente, el **PLAN DE DIETA SEMANAL COMPLETO**.
 
-Usa un tono motivador y profesional. Utiliza emojis para hacer la lectura más amena.
+Usa un tono motivador y profesional y añade emojis para hacer la lectura más amena.
         """.trimIndent()
     }
 
@@ -124,8 +118,8 @@ Usa un tono motivador y profesional. Utiliza emojis para hacer la lectura más a
                     put("content", prompt)
                 })
             })
-            put("temperature", 0.8) 
-            put("max_tokens", 4096) // Increased for weekly plan
+            put("temperature", 0.8)
+            put("max_tokens", 4096)
             put("top_p", 0.9)
             put("stream", false)
         }
@@ -170,6 +164,7 @@ Usa un tono motivador y profesional. Utiliza emojis para hacer la lectura más a
             val message = choices.getJSONObject(0).getJSONObject("message")
             val fullText = message.getString("content").trim()
 
+            // Se mantiene la lógica de separación
             val sections = fullText.split("===DIETA===", ignoreCase = true, limit = 2)
             val routine = sections.getOrNull(0)?.trim() ?: ""
             val diet = sections.getOrNull(1)?.trim() ?: ""

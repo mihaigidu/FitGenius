@@ -1,5 +1,6 @@
 package com.example.fitgenius
 
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -7,14 +8,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.rememberNavController
+import com.example.fitgenius.data.AIResponse
 import com.example.fitgenius.data.UserProfile
 import com.example.fitgenius.ui.theme.FitGeniusTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,15 +29,47 @@ class MainActivity : ComponentActivity() {
                 ) {
                     val navController = rememberNavController()
                     var currentUserProfile by remember { mutableStateOf<UserProfile?>(null) }
+                    var aiResponse by remember { mutableStateOf<AIResponse?>(null) }
+                    var isLoading by remember { mutableStateOf(false) }
+                    var errorMessage by remember { mutableStateOf<String?>(null) }
+                    val scalewayAIService = remember { ScalewayAIService() }
+
+                    fun generatePlan(profile: UserProfile, isRegenerating: Boolean = false) {
+                        if (isRegenerating) {
+                            aiResponse = null
+                        }
+                        lifecycleScope.launch {
+                            isLoading = true
+                            errorMessage = null
+                            try {
+                                aiResponse = scalewayAIService.generateRoutineAndDiet(profile)
+                            } catch (e: Exception) {
+                                errorMessage = e.message
+                            } finally {
+                                isLoading = false
+                            }
+                        }
+                    }
 
                     NavGraph(
                         navController = navController,
                         currentUserProfile = currentUserProfile,
+                        aiResponse = aiResponse,
+                        isLoading = isLoading,
+                        errorMessage = errorMessage,
                         onUserRegistered = { profile ->
                             currentUserProfile = profile
                         },
-                        onProfileComplete = { profile ->
-                            currentUserProfile = profile
+                        onProfileComplete = { profile, isEditing, imageUri ->
+                            currentUserProfile = profile.copy(
+                                profileImageUri = imageUri?.toString() ?: currentUserProfile?.profileImageUri
+                            )
+                            if (!isEditing) {
+                                generatePlan(profile)
+                            }
+                        },
+                        onGenerateNewPlan = {
+                            currentUserProfile?.let { generatePlan(it, isRegenerating = true) }
                         }
                     )
                 }

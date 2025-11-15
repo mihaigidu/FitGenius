@@ -1,11 +1,13 @@
 package com.example.fitgenius.data
 
+import android.net.Uri
 
 data class UserProfile(
     // Parte 1: Registro Básico
     var id: String = "",
     var name: String = "",
     var email: String = "",
+    var profileImageUri: String? = null, // NUEVO: Para la foto de perfil
 
     // Parte 2: Detalles del Perfil
     var gender: String = "Hombre",
