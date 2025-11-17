@@ -79,8 +79,8 @@ ${if (profile.gender == "Mujer" && menstrualPhase != null) {
         } else ""}
 
 **SECCIÓN 2: PLAN DE DIETA SEMANAL**
-Genera un plan de comidas detallado para **6 días (Lunes a Sábado)**. El **Domingo** es un **DÍA LIBRE** (cheat day) y no debes generar un plan para él, solo mencionarlo al final de la sección de dieta.
-Para CADA UNO de los 6 días, usa el siguiente formato:
+Genera un plan de comidas detallado para **los 7 días de la semana (Lunes a Domingo)**.
+Para CADA DÍA de la semana, usa el siguiente formato:
 - **TÍTULO OBLIGATORIO:** El título DEBE ser el día de la semana, seguido de dos puntos y un recuento de las calorías totales aproximadas. Ejemplo: `Lunes: ~2250 kcal`.
 - Detalla 5 comidas (Desayuno, Media Mañana, Almuerzo, Merienda, Cena) con alimentos y cantidades.
 - El plan DEBE excluir estrictamente los alérgenos: ${profile.allergies}.
@@ -91,7 +91,7 @@ Para CADA UNO de los 6 días, usa el siguiente formato:
 2. Luego, en una nueva línea, escribe la palabra clave `===DIETA===`.
 3. Finalmente, el **PLAN DE DIETA SEMANAL COMPLETO**.
 
-Usa un tono motivador y profesional y añade emojis para hacer la lectura más amena.
+Usa un tono motivador y profesional y añade emojis para hacer la lectura más amena y haz que los emojis se adapten al plan de la dieta.
         """.trimIndent()
     }
 

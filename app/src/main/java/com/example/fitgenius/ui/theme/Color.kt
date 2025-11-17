@@ -2,26 +2,15 @@ package com.example.fitgenius.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Nueva paleta de colores - Inspirada en tonos oscuros y acentos vibrantes
+// Paleta Principal: Verde Gasolina, Blanco y Azul
+val PetrolGreen = Color(0xFF005A5B)      // Un verde oscuro y elegante
+val BrightBlue = Color(0xFF0077B6)       // Un azul vibrante para acentos y acciones
+val PureWhite = Color(0xFFFFFFFF)         // Blanco puro para textos y elementos sobre fondos oscuros
+val OffWhite = Color(0xFFF8F9FA)          // Un blanco roto para fondos claros, menos duro que el blanco puro
 
-// Tonos base oscuros
-val DarkCharcoal = Color(0xFF1E1E1E) // Un gris muy oscuro para el fondo principal
-val SlateGray = Color(0xFF2C3E50)   // Un gris azulado para superficies y tarjetas
-val LightSlate = Color(0xFF34495E)  // Un gris más claro para barras de navegación
-
-// Colores de acento
-val VibrantBlue = Color(0xFF3498DB) // Un azul vibrante para botones principales y tabs activas
-val SoftBlue = Color(0xFF5DADE2)    // Un azul más suave para indicadores
-
-// Colores de texto y secundarios
-val OffWhite = Color(0xFFECF0F1)      // Blanco roto para texto principal, alta legibilidad
-val LightGrayText = Color(0xFFBDC3C7) // Gris claro para texto secundario o descriptivo
-val FieryRed = Color(0xFFE74C3C)      // Rojo para errores o acciones destructivas
-
-// Colores anteriores (se pueden eliminar o mantener como referencia)
-val DarkGreen = Color(0xFF003844)
-val Teal = Color(0xFF006C67)
-val LightTeal = Color(0xFF9FFFCB)
-val OrangeAccent = Color(0xFFFFA500)
-val DarkGrey = Color(0xFF121212)
-val LightGrey = Color(0xFF282828)
+// Tonos Neutros
+val DarkGrey = Color(0xFF121212)         // Fondo principal para el modo oscuro
+val LightGrey = Color(0xFF212121)        // Color para superficies en modo oscuro (ej. tarjetas)
+val MediumGrey = Color(0xFF9E9E9E)       // Textos secundarios o iconos inactivos
+val TextColorDark = Color(0xFFE0E0E0)   // Color de texto principal para modo oscuro
+val TextColorLight = Color(0xFF333333)  // Color de texto principal para modo claro
