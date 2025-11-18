@@ -1,14 +1,18 @@
 package com.example.fitgenius.screens
 
+import android.net.Uri
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
@@ -19,37 +23,41 @@ import com.example.fitgenius.data.UserProfile
 fun ProfileFormScreen(
     navController: NavController,
     userProfile: UserProfile,
-    onProfileComplete: (UserProfile) -> Unit,
-    isEditing: Boolean = false
+    onProfileComplete: (UserProfile, Boolean, Uri?) -> Unit,
+    isEditing: Boolean
 ) {
-    var profileState by remember(userProfile) { mutableStateOf(userProfile) }
-
-    val exerciseOptions = listOf("Correr", "Nadar", "Ciclismo", "Levantamiento de pesas", "Yoga", "Pilates", "CrossFit")
+    var profileState by remember { mutableStateOf(userProfile) }
+    val exerciseOptions = listOf("Correr", "Nadar", "Ciclismo", "Pesas", "Yoga", "Pilates", "CrossFit")
 
     Scaffold(
         topBar = {
-            TopAppBar(title = {
-                Text(if (isEditing) "Editar Perfil" else "Paso 2 de 2: Completa tu Perfil")
-            })
+            TopAppBar(
+                title = { Text(if (isEditing) "Editar Perfil" else "Tu Perfil (Paso 2)") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                    }
+                }
+            )
         },
         bottomBar = {
             Button(
                 onClick = {
-                    onProfileComplete(profileState)
+                    onProfileComplete(profileState, isEditing, null)
                     if (isEditing) {
                         navController.popBackStack()
                     } else {
-                        navController.navigate("home") {
-                            popUpTo("login") { inclusive = true }
-                        }
+                        navController.navigate("home") { popUpTo("login") { inclusive = true } }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .height(50.dp)
             ) {
                 Text(
-                    text = if (isEditing) "Guardar Cambios" else "Crear Perfil y Generar Plan",
-                    color = MaterialTheme.colorScheme.onTertiary
+                    text = if (isEditing) "GUARDAR CAMBIOS" else "GENERAR MI PLAN",
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -59,80 +67,47 @@ fun ProfileFormScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Section: Biometrics
-            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Datos Biométricos", style = MaterialTheme.typography.titleLarge)
-                    Spacer(Modifier.height(16.dp))
-                    OutlinedTextField(value = profileState.age.toString().takeIf { it != "0" } ?: "", onValueChange = { profileState = profileState.copy(age = it.toIntOrNull() ?: 0) }, label = { Text("Edad") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(value = profileState.weight.toString().takeIf { it != "0.0" } ?: "", onValueChange = { profileState = profileState.copy(weight = it.toDoubleOrNull() ?: 0.0) }, label = { Text("Peso (kg)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(value = profileState.height.toString().takeIf { it != "0.0" } ?: "", onValueChange = { profileState = profileState.copy(height = it.toDoubleOrNull() ?: 0.0) }, label = { Text("Altura (cm)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
+            // Datos Biométricos
+            FormSection(title = "Datos Biométricos") {
+                OutlinedTextField(value = profileState.age.toString().takeIf { it != "0" } ?: "", onValueChange = { profileState = profileState.copy(age = it.toIntOrNull() ?: 0) }, label = { Text("Edad") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = profileState.weight.toString().takeIf { it != "0.0" } ?: "", onValueChange = { profileState = profileState.copy(weight = it.toDoubleOrNull() ?: 0.0) }, label = { Text("Peso (kg)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = profileState.height.toString().takeIf { it != "0.0" } ?: "", onValueChange = { profileState = profileState.copy(height = it.toDoubleOrNull() ?: 0.0) }, label = { Text("Altura (cm)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.fillMaxWidth())
+                DropdownMenuField(options = listOf("Hombre", "Mujer"), selectedOption = profileState.gender, onSelect = { profileState = profileState.copy(gender = it) }, label = "Género")
+                if (profileState.gender == "Mujer") {
+                    DropdownMenuField(options = listOf("Menstruación", "Folicular", "Ovulación", "Lútea"), selectedOption = profileState.menstrualPhase ?: "Menstruación", onSelect = { profileState = profileState.copy(menstrualPhase = it) }, label = "Fase Menstrual")
                 }
             }
 
-            // Section: Goals & Lifestyle
-            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Estilo de Vida y Objetivos", style = MaterialTheme.typography.titleLarge)
-                    Spacer(Modifier.height(16.dp))
-                    DropdownMenuField(options = listOf("Hombre", "Mujer"), selectedOption = profileState.gender, onSelect = { profileState = profileState.copy(gender = it) }, label = "Género")
-                    if (profileState.gender == "Mujer") {
-                        Spacer(Modifier.height(8.dp))
-                        DropdownMenuField(options = listOf("Menstruación", "Folicular", "Ovulación", "Lútea"), selectedOption = profileState.menstrualPhase ?: "Menstruación", onSelect = { profileState = profileState.copy(menstrualPhase = it) }, label = "Fase Menstrual")
-                    }
-                    Spacer(Modifier.height(8.dp))
-                    DropdownMenuField(options = listOf("Pérdida de peso", "Ganar músculo", "Mantenimiento", "Tonificación"), selectedOption = profileState.goal, onSelect = { profileState = profileState.copy(goal = it) }, label = "Objetivo Principal")
-                    Spacer(Modifier.height(8.dp))
-                    DropdownMenuField(options = listOf("Sedentario", "Moderado", "Activo", "Muy activo"), selectedOption = profileState.activityLevel, onSelect = { profileState = profileState.copy(activityLevel = it) }, label = "Nivel de Actividad")
-                }
+            // Objetivos y Estilo de Vida
+            FormSection(title = "Objetivos y Estilo de Vida") {
+                DropdownMenuField(options = listOf("Pérdida de peso", "Ganar músculo", "Mantenimiento", "Tonificación"), selectedOption = profileState.goal, onSelect = { profileState = profileState.copy(goal = it) }, label = "Mi objetivo principal")
+                DropdownMenuField(options = listOf("Sedentario", "Moderado", "Activo", "Muy activo"), selectedOption = profileState.activityLevel, onSelect = { profileState = profileState.copy(activityLevel = it) }, label = "Mi nivel de actividad")
+                DropdownMenuField(options = (3..7).map { "$it días" }, selectedOption = "${profileState.trainingDays} días", onSelect = { profileState = profileState.copy(trainingDays = it.removeSuffix(" días").toIntOrNull() ?: 3) }, label = "Días de entreno semanales")
+                DropdownMenuField(options = listOf("En casa", "Gimnasio"), selectedOption = profileState.trainingLocation, onSelect = { profileState = profileState.copy(trainingLocation = it) }, label = "¿Dónde entrenas?")
             }
 
-            // Section: Training Preferences
-            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Preferencias de Entrenamiento", style = MaterialTheme.typography.titleLarge)
-                    Spacer(Modifier.height(16.dp))
-                    DropdownMenuField(options = listOf("3", "4", "5", "6"), selectedOption = profileState.trainingDays.toString(), onSelect = { profileState = profileState.copy(trainingDays = it.toIntOrNull() ?: 3) }, label = "Días de entrenamiento por semana")
-                    Spacer(Modifier.height(8.dp))
-                    DropdownMenuField(options = listOf("Casa", "Gimnasio"), selectedOption = profileState.trainingLocation, onSelect = { profileState = profileState.copy(trainingLocation = it) }, label = "Lugar de entrenamiento")
-
-                    Text("Ejercicios Favoritos (opcional)", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp))
-                    exerciseOptions.forEach { exercise ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth().clickable {
-                                val currentFavorites = profileState.favoriteExercises.toMutableList()
-                                if (currentFavorites.contains(exercise)) {
-                                    currentFavorites.remove(exercise)
-                                } else {
-                                    currentFavorites.add(exercise)
-                                }
-                                profileState = profileState.copy(favoriteExercises = currentFavorites)
-                            }.padding(vertical = 4.dp)
-                        ) {
-                            Checkbox(checked = profileState.favoriteExercises.contains(exercise), onCheckedChange = null)
-                            Spacer(Modifier.width(8.dp))
-                            Text(exercise)
-                        }
-                    }
+            // Preferencias
+            FormSection(title = "Preferencias") {
+                MultiSelectChipGroup(title = "Ejercicios que te gustan", options = exerciseOptions, selectedOptions = profileState.favoriteExercises) { newSelection ->
+                    profileState = profileState.copy(favoriteExercises = newSelection)
                 }
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(value = profileState.allergies, onValueChange = { profileState = profileState.copy(allergies = it) }, label = { Text("Alergias o intolerancias") }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("Ej: Lactosa, gluten, nueces...") })
+                OutlinedTextField(value = profileState.foodPreferences, onValueChange = { profileState = profileState.copy(foodPreferences = it) }, label = { Text("Preferencias de comida") }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("Ej: Vegano, vegetariano, sin carne roja...") })
             }
+        }
+    }
+}
 
-            // Section: Diet Preferences
-            Card(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Preferencias de Dieta", style = MaterialTheme.typography.titleLarge)
-                    Spacer(Modifier.height(16.dp))
-                    OutlinedTextField(value = profileState.allergies, onValueChange = { profileState = profileState.copy(allergies = it) }, label = { Text("Alergias (separadas por comas)") }, modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(8.dp))
-                    OutlinedTextField(value = profileState.foodPreferences, onValueChange = { profileState = profileState.copy(foodPreferences = it) }, label = { Text("Otras preferencias (vegano, etc.)") }, modifier = Modifier.fillMaxWidth())
-                }
-            }
-            Spacer(Modifier.height(32.dp))
+@Composable
+fun FormSection(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            content()
         }
     }
 }
@@ -160,6 +135,31 @@ fun DropdownMenuField(options: List<String>, selectedOption: String, onSelect: (
                         expanded = false
                     },
                     contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding,
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MultiSelectChipGroup(title: String, options: List<String>, selectedOptions: List<String>, onSelectionChanged: (List<String>) -> Unit) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium)
+        Spacer(Modifier.height(8.dp))
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            options.forEach { option ->
+                FilterChip(
+                    selected = selectedOptions.contains(option),
+                    onClick = {
+                        val newSelection = if (selectedOptions.contains(option)) {
+                            selectedOptions.filterNot { it == option }
+                        } else {
+                            selectedOptions + option
+                        }
+                        onSelectionChanged(newSelection)
+                    },
+                    label = { Text(option) }
                 )
             }
         }

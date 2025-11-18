@@ -6,18 +6,24 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.fitgenius.data.UserProfile
+import com.example.fitgenius.ui.theme.PetrolGreen
+import com.example.fitgenius.ui.theme.PureWhite
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RegisterScreen(navController: NavController, onUserRegistered: (UserProfile) -> Unit) {
+fun RegisterScreen(
+    navController: NavController,
+    onUserRegistered: (UserProfile) -> Unit
+) {
+
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -25,35 +31,60 @@ fun RegisterScreen(navController: NavController, onUserRegistered: (UserProfile)
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Crear Cuenta") },
+                title = {
+                    Text(
+                        "Crea tu Cuenta",
+                        fontWeight = FontWeight.Bold,
+                        color = PetrolGreen
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver",
+                            tint = PetrolGreen
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent)
             )
+        },
+        bottomBar = {
+            Button(
+                onClick = {
+                    val profile = UserProfile(name = name, email = email)
+                    onUserRegistered(profile)
+                    navController.navigate("profile_form/false")
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+                    .height(55.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PetrolGreen),
+                shape = MaterialTheme.shapes.large,
+                enabled = name.isNotBlank() && email.isNotBlank() && password.length >= 6
+            ) {
+                Text("CONTINUAR", color = PureWhite, fontWeight = FontWeight.Bold)
+            }
         }
-    ) { paddingValues ->
+    ) { padding ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
-                .padding(horizontal = 24.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .padding(padding)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+
             Text(
-                "Un último paso",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center
+                "Vamos a comenzar con tus datos básicos",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    color = PetrolGreen,
+                    fontWeight = FontWeight.SemiBold
+                )
             )
-            Text(
-                "Necesitamos algunos datos para crear tu perfil.",
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.height(48.dp))
 
             OutlinedTextField(
                 value = name,
@@ -61,7 +92,7 @@ fun RegisterScreen(navController: NavController, onUserRegistered: (UserProfile)
                 label = { Text("Nombre") },
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(16.dp))
+
             OutlinedTextField(
                 value = email,
                 onValueChange = { email = it },
@@ -69,31 +100,15 @@ fun RegisterScreen(navController: NavController, onUserRegistered: (UserProfile)
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(16.dp))
+
             OutlinedTextField(
                 value = password,
                 onValueChange = { password = it },
-                label = { Text("Contraseña") },
+                label = { Text("Contraseña (mín. 6 caracteres)") },
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth()
             )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            Button(
-                onClick = {
-                    val basicProfile = UserProfile(name = name, email = email)
-                    onUserRegistered(basicProfile)
-                    navController.navigate("profile_form/false")
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    .padding(bottom = 8.dp) // Padding for the button at the bottom
-            ) {
-                Text("Siguiente")
-            }
         }
     }
 }

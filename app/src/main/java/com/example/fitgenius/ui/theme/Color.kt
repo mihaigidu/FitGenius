@@ -2,15 +2,15 @@ package com.example.fitgenius.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Paleta Principal: Verde Gasolina, Blanco y Azul
-val PetrolGreen = Color(0xFF005A5B)      // Un verde oscuro y elegante
-val BrightBlue = Color(0xFF0077B6)       // Un azul vibrante para acentos y acciones
+// Paleta Principal: Verde Gasolina, Azul Eléctrico y Blancos
+val PetrolGreen = Color(0xFF00695C)      // Verde gasolina principal, elegante y oscuro
+val BrightBlue = Color(0xFF007BFF)       // Azul vibrante para botones y acentos importantes
 val PureWhite = Color(0xFFFFFFFF)         // Blanco puro para textos y elementos sobre fondos oscuros
-val OffWhite = Color(0xFFF8F9FA)          // Un blanco roto para fondos claros, menos duro que el blanco puro
+val OffWhite = Color(0xFFF7F7F7)          // Fondo principal para el modo claro, suave a la vista
 
 // Tonos Neutros
-val DarkGrey = Color(0xFF121212)         // Fondo principal para el modo oscuro
-val LightGrey = Color(0xFF212121)        // Color para superficies en modo oscuro (ej. tarjetas)
-val MediumGrey = Color(0xFF9E9E9E)       // Textos secundarios o iconos inactivos
-val TextColorDark = Color(0xFFE0E0E0)   // Color de texto principal para modo oscuro
-val TextColorLight = Color(0xFF333333)  // Color de texto principal para modo claro
+val DarkBackground = Color(0xFF121212)    // Fondo para modo oscuro
+val DarkSurface = Color(0xFF1E1E1E)       // Color para tarjetas en modo oscuro
+val MediumGrey = Color(0xFFB0B0B0)       // Textos/iconos con énfasis bajo
+val TextColorDark = Color(0xFFEAEAEA)     // Texto principal en modo oscuro
+val TextColorLight = Color(0xFF212121)    // Texto principal en modo claro

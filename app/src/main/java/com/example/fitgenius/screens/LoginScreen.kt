@@ -1,59 +1,85 @@
 package com.example.fitgenius.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.fitgenius.ui.theme.PetrolGreen
+import com.example.fitgenius.ui.theme.BrightBlue
+import com.example.fitgenius.ui.theme.PureWhite
 
 @Composable
 fun LoginScreen(navController: NavController) {
-    Column(
+
+    val gradient = Brush.verticalGradient(
+        colors = listOf(
+            PetrolGreen.copy(alpha = 0.90f),
+            BrightBlue.copy(alpha = 0.70f)
+        )
+    )
+
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(gradient)
+            .padding(32.dp)
     ) {
-        Spacer(modifier = Modifier.weight(1f))
 
-        Text(
-            "FitGenius",
-            style = MaterialTheme.typography.displaySmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        )
-        Text(
-            "Tu entrenador personal de IA",
-            style = MaterialTheme.typography.titleMedium.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
-        )
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(
-            onClick = { navController.navigate("register") },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Comenzar Ahora")
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        TextButton(onClick = { navController.navigate("home") }) {
-            Text("Ya tengo una cuenta (Demo)")
+
+            Text(
+                "FitGenius",
+                style = MaterialTheme.typography.displayMedium,
+                color = PureWhite,
+                fontWeight = FontWeight.Black,
+                textAlign = TextAlign.Center
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                "Tu entrenador personal con IA",
+                style = MaterialTheme.typography.titleMedium,
+                color = PureWhite.copy(alpha = 0.85f)
+            )
+
+            Spacer(modifier = Modifier.height(120.dp))
+
+            Button(
+                onClick = { navController.navigate("register") },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(55.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = PureWhite)
+            ) {
+                Text(
+                    "Comenzar ahora",
+                    color = PetrolGreen,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            TextButton(onClick = { navController.navigate("home") }) {
+                Text(
+                    "Ya tengo una cuenta",
+                    color = PureWhite,
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
         }
     }
 }

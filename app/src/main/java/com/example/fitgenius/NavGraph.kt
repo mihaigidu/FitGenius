@@ -45,7 +45,7 @@ fun NavGraph(
                 ProfileFormScreen(
                     navController = navController,
                     userProfile = currentUserProfile,
-                    onProfileComplete = { profile -> onProfileComplete(profile, isEditing, null) },
+                    onProfileComplete = onProfileComplete, // Corrección: Pasar la función directamente
                     isEditing = isEditing
                 )
             }
