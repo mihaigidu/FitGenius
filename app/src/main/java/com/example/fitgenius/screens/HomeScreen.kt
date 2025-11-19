@@ -1,36 +1,38 @@
 package com.example.fitgenius.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import com.example.fitgenius.data.AIResponse
 import com.example.fitgenius.data.UserProfile
-import com.example.fitgenius.ui.theme.BrightBlue
 import com.example.fitgenius.ui.theme.PetrolGreen
-import com.example.fitgenius.ui.theme.PureWhite
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
 data class DayPlan(val title: String, val content: String)
+
+val LightGreenBackground = Color(0xFFF0FFF8)
+val MutedGreen = Color(0xFFE6F4EA)
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -44,6 +46,12 @@ fun HomeScreen(
     val pagerState = rememberPagerState(pageCount = { 4 })
     val coroutineScope = rememberCoroutineScope()
 
+    val onNavigateToTab: (Int) -> Unit = { tabIndex ->
+        coroutineScope.launch {
+            pagerState.animateScrollToPage(tabIndex)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -52,22 +60,25 @@ fun HomeScreen(
                     IconButton(onClick = { /* TODO: Implementar logout */ }) {
                         Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir")
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MutedGreen)
             )
         },
     ) { paddingValues ->
-        Column(modifier = Modifier.padding(paddingValues)) {
-            TabRow(selectedTabIndex = pagerState.currentPage) {
-                Tab(selected = pagerState.currentPage == 0, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } }, text = { Text("General") })
+        Column(modifier = Modifier
+            .padding(paddingValues)
+            .background(MutedGreen)) {
+            TabRow(selectedTabIndex = pagerState.currentPage, containerColor = MutedGreen) {
+                Tab(selected = pagerState.currentPage == 0, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } }, text = { Text("Inicio") })
                 Tab(selected = pagerState.currentPage == 1, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } }, text = { Text("Rutina") })
-                Tab(selected = pagerState.currentPage == 2, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } }, text = { Text("Dieta") })
+                Tab(selected = pagerState.currentPage == 2, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } }, text = { Text("Nutrición") })
                 Tab(selected = pagerState.currentPage == 3, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(3) } }, text = { Text("Progreso") })
             }
 
             HorizontalPager(state = pagerState) {
                 page ->
                 when (page) {
-                    0 -> GeneralScreen(userProfile = userProfile, aiResponse = aiResponse, isLoading = isLoading, errorMessage = errorMessage)
+                    0 -> GeneralScreen(userProfile = userProfile, aiResponse = aiResponse, isLoading = isLoading, errorMessage = errorMessage, onNavigateToTab = onNavigateToTab)
                     1 -> RoutineScreen(aiResponse = aiResponse)
                     2 -> DietScreen(aiResponse = aiResponse)
                     3 -> ProgressScreen()
@@ -78,7 +89,7 @@ fun HomeScreen(
 }
 
 @Composable
-fun GeneralScreen(userProfile: UserProfile?, aiResponse: AIResponse?, isLoading: Boolean, errorMessage: String?) {
+fun GeneralScreen(userProfile: UserProfile?, aiResponse: AIResponse?, isLoading: Boolean, errorMessage: String?, onNavigateToTab: (Int) -> Unit) {
     when {
         isLoading -> LoadingState()
         errorMessage != null -> ErrorState(errorMessage) { }
@@ -86,14 +97,16 @@ fun GeneralScreen(userProfile: UserProfile?, aiResponse: AIResponse?, isLoading:
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .background(MutedGreen)
                     .verticalScroll(rememberScrollState())
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Text("Hola, ${userProfile.name}", style = MaterialTheme.typography.headlineSmall)
                 ProfileSummaryCard(userProfile = userProfile)
-                TrainingSummaryCard(aiResponse = aiResponse)
-                NutritionSummaryCard(aiResponse = aiResponse)
+                TrainingSummaryCard(aiResponse = aiResponse) { onNavigateToTab(1) }
+                NutritionSummaryCard { onNavigateToTab(2) }
+                ProgressSummaryCard { onNavigateToTab(3) }
+                RecentActivitySection()
             }
         }
         else -> NoPlanState { }
@@ -102,63 +115,125 @@ fun GeneralScreen(userProfile: UserProfile?, aiResponse: AIResponse?, isLoading:
 
 @Composable
 fun ProfileSummaryCard(userProfile: UserProfile) {
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Tu Perfil", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
-                ProfileInfoChip("Objetivo", userProfile.goal)
-                ProfileInfoChip("Nivel", userProfile.activityLevel)
-                ProfileInfoChip("Peso", "${userProfile.weight} kg")
+    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.AccountCircle, contentDescription = "Tu Perfil", tint = MaterialTheme.colorScheme.primary)
+                Text("Tu Perfil", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                ProfileInfoChip("Objetivo", userProfile.goal, Icons.Default.CheckCircle, Modifier.weight(1f))
+                ProfileInfoChip("Nivel", userProfile.activityLevel, Icons.Default.TrendingUp, Modifier.weight(1f))
+            }
+            Row {
+                ProfileInfoChip("Peso", "${userProfile.weight} kg", Icons.Default.FitnessCenter, Modifier.fillMaxWidth(0.5f).padding(end=6.dp))
             }
         }
     }
 }
 
 @Composable
-fun ProfileInfoChip(label: String, value: String) {
-    Card(shape = RoundedCornerShape(12.dp)) {
-        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(label, style = MaterialTheme.typography.labelMedium)
+fun ProfileInfoChip(title: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier = Modifier) {
+    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = Color.White), border = BorderStroke(1.dp, MutedGreen), modifier = modifier) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, contentDescription = title, tint = MaterialTheme.colorScheme.primary)
             Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+            Text(title, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
         }
     }
 }
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TrainingSummaryCard(aiResponse: AIResponse) {
+fun TrainingSummaryCard(aiResponse: AIResponse, onNavigate: () -> Unit) {
     val todayRoutine = remember(aiResponse.routine) { getTodayPlan(aiResponse.routine) }
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Entrenamiento", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-            if (todayRoutine != null) {
-                Text("Hoy: ${todayRoutine.title}")
-                Text(todayRoutine.content.lines().firstOrNull() ?: "")
-                Button(onClick = { /*TODO*/ }) {
-                    Text("Listo para entrenar")
+    Card(onClick = onNavigate, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.FitnessCenter, contentDescription = "Entrenamiento", tint = MaterialTheme.colorScheme.primary)
+                    Text("Entrenamiento", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
-            } else {
-                Text("Descanso.")
+                if (todayRoutine != null) {
+                    Text("Hoy: ${todayRoutine.title}", fontWeight = FontWeight.Bold)
+                    Text("4 ejercicios • 45 min", style = MaterialTheme.typography.bodyMedium, color = Color.Gray) // Placeholder
+                    FilterChip(selected = false, onClick = {}, label = { Text("Listo para entrenar") })
+                } else {
+                    Text("Día de descanso.", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun NutritionSummaryCard(onNavigate: () -> Unit) {
+    Card(onClick = onNavigate, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Fastfood, contentDescription = "Nutrición", tint = Color.Red.copy(alpha = 0.7f))
+                    Text("Nutrición", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+                Text("1,850 / 2,200 kcal", fontWeight = FontWeight.Bold)
+                LinearProgressIndicator(progress = { 1850f / 2200f }, modifier = Modifier.fillMaxWidth())
+                Text("Te quedan 350 kcal", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ProgressSummaryCard(onNavigate: () -> Unit) {
+    Card(onClick = onNavigate, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Icon(Icons.Default.Whatshot, contentDescription = "Progreso", tint = Color(0xFFFFA000))
+                    Text("Progreso", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                }
+                Text("Racha: 7 días", fontWeight = FontWeight.Bold)
+                Text("¡Sigue así!", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                FilterChip(selected = false, onClick = {}, label = { Text("🔥 En fuego") })
+            }
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
+        }
+    }
+}
+
+@Composable
+fun RecentActivitySection() {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Default.History, contentDescription = "Actividad Reciente", tint = MaterialTheme.colorScheme.primary)
+            Text("Actividad Reciente", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        }
+        Text("Tu actividad de esta semana", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+
+        // Placeholder activities
+        Card(colors=CardDefaults.cardColors(containerColor = LightGreenBackground)){
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)){
+                Icon(Icons.Default.FitnessCenter, "", modifier = Modifier.background(Color.White, CircleShape).padding(8.dp))
+                Column(Modifier.weight(1f)){
+                    Text("Entrenamiento de Pierna", fontWeight = FontWeight.Bold)
+                    Text("Ayer • 45 minutos", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                }
+                Text("Completado", color = MaterialTheme.colorScheme.primary, modifier = Modifier.background(MutedGreen, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp))
             }
         }
-    }
-}
-
-
-@Composable
-fun NutritionSummaryCard(aiResponse: AIResponse) {
-    val todayDiet = remember(aiResponse.diet) { getTodayPlan(aiResponse.diet) }
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text("Nutrición", style = MaterialTheme.typography.titleLarge)
-            Spacer(modifier = Modifier.height(8.dp))
-            if (todayDiet != null) {
-                val currentMeal = remember(todayDiet.content) { getCurrentMeal(todayDiet.content) }
-                Text(currentMeal)
-            } else {
-                Text("Sin plan de dieta para hoy.")
+         Card(colors=CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))){
+            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)){
+                Icon(Icons.Default.Fastfood, "", modifier = Modifier.background(Color.White, CircleShape).padding(8.dp), tint=Color.Blue.copy(alpha=0.8f))
+                Column(Modifier.weight(1f)){
+                    Text("Meta calórica alcanzada", fontWeight = FontWeight.Bold)
+                    Text("Hace 2 días", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                }
+                Icon(Icons.Default.Check, contentDescription = "Completado", tint = Color.Blue.copy(alpha=0.8f))
             }
         }
     }
@@ -187,7 +262,7 @@ fun DietScreen(aiResponse: AIResponse?) {
 
 @Composable
 fun ProgressScreen() {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+    Box(modifier = Modifier.fillMaxSize().background(MutedGreen), contentAlignment = Alignment.Center) {
         Text("Próximamente...", style = MaterialTheme.typography.headlineMedium)
     }
 }
@@ -203,96 +278,6 @@ fun getTodayPlan(planText: String): DayPlan? {
     return plans.getOrNull(todayIndex)
 }
 
-fun getCurrentMeal(dietPlanContent: String): String {
-    val calendar = Calendar.getInstance()
-    val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
-
-    val mealTimeName = when (currentHour) {
-        in 5..10 -> "Desayuno"
-        in 11..14 -> "Comida"
-        in 15..18 -> "Merienda"
-        in 19..22 -> "Cena"
-        else -> null
-    }
-
-    if (mealTimeName == null) {
-        return "Revisa tu plan de dieta para ver tus comidas."
-    }
-
-    val mealKeywords = mapOf(
-        "Desayuno" to listOf("DESAYUNO"),
-        "Comida" to listOf("COMIDA", "ALMUERZO"),
-        "Merienda" to listOf("MERIENDA"),
-        "Cena" to listOf("CENA")
-    )
-
-    val targetKeywords = mealKeywords[mealTimeName] ?: emptyList()
-    val allLines = dietPlanContent.lines()
-
-    val mealContent = StringBuilder()
-    var capturing = false
-
-    for (line in allLines) {
-        val trimmedUpper = line.trim().uppercase()
-        val isNewMealHeader = mealKeywords.values.flatten().any { keyword -> trimmedUpper.startsWith(keyword) }
-
-        if (isNewMealHeader) {
-            if (capturing) break
-            if (targetKeywords.any { keyword -> trimmedUpper.startsWith(keyword) }) {
-                capturing = true
-                mealContent.append(line).append("\n")
-            }
-        } else if (capturing) {
-            mealContent.append(line).append("\n")
-        }
-    }
-
-    if (mealContent.isNotBlank()) {
-        return "Para tu $mealTimeName:\n${mealContent.toString().trim()}"
-    }
-
-    return "Es hora de tu $mealTimeName. Revisa tu plan de dieta completo para ver los detalles."
-}
-
-@Composable
-fun DailyPlanScreen(routineDays: List<DayPlan>, dietDays: List<DayPlan>) {
-    val calendar = Calendar.getInstance()
-    val todayIndex = (calendar.get(Calendar.DAY_OF_WEEK) + 5) % 7
-
-    Column(
-        modifier = Modifier
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 16.dp)
-    ) {
-
-        Text(
-            "Rutina Semanal",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                color = PureWhite,
-                fontWeight = FontWeight.Black
-            ),
-            modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-        )
-
-        DayPager(plans = routineDays, initialIndex = todayIndex)
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            "Dieta Semanal",
-            style = MaterialTheme.typography.headlineMedium.copy(
-                color = PureWhite,
-                fontWeight = FontWeight.Black
-            ),
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        DayPager(plans = dietDays, initialIndex = todayIndex)
-
-        Spacer(modifier = Modifier.height(24.dp))
-    }
-}
-
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DayPager(plans: List<DayPlan>, initialIndex: Int) {
@@ -300,7 +285,8 @@ fun DayPager(plans: List<DayPlan>, initialIndex: Int) {
 
     HorizontalPager(
         state = pagerState,
-        contentPadding = PaddingValues(horizontal = 32.dp)
+        modifier = Modifier.background(MutedGreen),
+        contentPadding = PaddingValues(horizontal = 32.dp, vertical=16.dp)
     ) { page ->
         DayCard(
             dayPlan = plans[page],
@@ -313,15 +299,12 @@ fun DayPager(plans: List<DayPlan>, initialIndex: Int) {
 fun DayCard(dayPlan: DayPlan, isToday: Boolean) {
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .height(450.dp),
+            .fillMaxWidth(),
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
-            containerColor =
-                if (isToday) PureWhite.copy(alpha = 0.90f)
-                else PureWhite.copy(alpha = 0.75f)
+            containerColor = Color.White
         ),
-        elevation = CardDefaults.cardElevation(10.dp)
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(
             modifier = Modifier
@@ -389,9 +372,9 @@ fun parsePlan(planText: String): List<DayPlan> {
 }
 
 @Composable
-fun NoPlanState(onCreatePlan: () -> Unit) {
+fun NoPlanState(onCreatePlan: () -> Unit = {}) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().background(MutedGreen),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -415,7 +398,7 @@ fun NoPlanState(onCreatePlan: () -> Unit) {
 @Composable
 fun LoadingState() {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().background(MutedGreen),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -429,9 +412,9 @@ fun LoadingState() {
 }
 
 @Composable
-fun ErrorState(msg: String, onRetry: () -> Unit) {
+fun ErrorState(msg: String, onRetry: () -> Unit = {}) {
     Column(
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier.fillMaxSize().background(MutedGreen),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
