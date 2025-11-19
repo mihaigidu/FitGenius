@@ -9,6 +9,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
@@ -20,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
@@ -215,7 +217,6 @@ fun RecentActivitySection() {
         }
         Text("Tu actividad de esta semana", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
 
-        // Placeholder activities
         Card(colors=CardDefaults.cardColors(containerColor = LightGreenBackground)){
             Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)){
                 Icon(Icons.Default.FitnessCenter, "", modifier = Modifier.background(Color.White, CircleShape).padding(8.dp))
@@ -262,8 +263,167 @@ fun DietScreen(aiResponse: AIResponse?) {
 
 @Composable
 fun ProgressScreen() {
-    Box(modifier = Modifier.fillMaxSize().background(MutedGreen), contentAlignment = Alignment.Center) {
-        Text("Próximamente...", style = MaterialTheme.typography.headlineMedium)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MutedGreen)
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        ProgressSummarySection()
+        WeightEvolutionCard()
+        PersonalRecordsCard()
+        BodyMeasurementsCard()
+    }
+}
+
+@Composable
+fun ProgressSummarySection() {
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        ProgressSummaryChip("Racha", "7 días", "Máximo: 14 días", Icons.Default.Whatshot, Color(0xFFFFA000), Modifier.weight(1f))
+        ProgressSummaryChip("Entrenamientos", "24", "Este mes", Icons.Default.CalendarToday, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
+        ProgressSummaryChip("Récords", "4", "Personales", Icons.Default.EmojiEvents, Color.Magenta, Modifier.weight(1f))
+    }
+}
+
+@Composable
+fun ProgressSummaryChip(title: String, value: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: Color, modifier: Modifier = Modifier) {
+    Card(modifier = modifier, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = LightGreenBackground)) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Icon(icon, contentDescription = title, tint = iconColor)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+        }
+    }
+}
+
+@Composable
+fun WeightEvolutionCard() {
+    var weightInput by remember { mutableStateOf("") }
+    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.TrendingUp, contentDescription = "Evolución del Peso", tint = MaterialTheme.colorScheme.primary)
+                Text("Evolución del Peso", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+            Text("Tu progreso en las últimas semanas", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            // Placeholder for the chart
+            Box(modifier = Modifier
+                .fillMaxWidth()
+                .height(150.dp)
+                .background(MutedGreen, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
+                Text("[Gráfico de evolución del peso]", color = Color.Gray)
+            }
+            Text("Registrar nuevo peso", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = weightInput,
+                    onValueChange = { weightInput = it },
+                    label = { Text("Ej: 73.5") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.weight(1f)
+                )
+                Button(onClick = { /* TODO */ }) {
+                    Icon(Icons.Default.Add, contentDescription = "Guardar")
+                    Text("Guardar")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun PersonalRecordsCard() {
+    var exerciseInput by remember { mutableStateOf("") }
+    var weightInput by remember { mutableStateOf("") }
+
+    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(Icons.Default.EmojiEvents, contentDescription = "Récords Personales", tint = Color(0xFFFFA000))
+                Text("Récords Personales", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+            Text("Tus mejores marcas en cada ejercicio", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+            
+            // Placeholder Records
+            RecordItem(exercise = "Sentadilla", date = "15/11/2024", weight = "100 kg")
+            RecordItem(exercise = "Press de Banca", date = "12/11/2024", weight = "80 kg")
+            RecordItem(exercise = "Peso Muerto", date = "10/11/2024", weight = "120 kg")
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Registrar nuevo récord", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            OutlinedTextField(value = exerciseInput, onValueChange = { exerciseInput = it }, label = { Text("Ejercicio (Ej: Sentadilla)") }, modifier = Modifier.fillMaxWidth())
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = weightInput, onValueChange = { weightInput = it }, label = { Text("Peso en kg") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                Button(onClick = { /* TODO */ }, colors=ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA000))) {
+                    Icon(Icons.Default.Add, contentDescription = "Añadir")
+                    Text("Añadir")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun RecordItem(exercise: String, date: String, weight: String) {
+    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MutedGreen.copy(alpha=0.5f))) {
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)){
+                 Icon(Icons.Default.EmojiEvents, contentDescription = null, tint=Color(0xFFFFA000), modifier = Modifier.background(Color.White, CircleShape).padding(6.dp))
+                 Column {
+                    Text(exercise, fontWeight = FontWeight.Bold)
+                    Text(date, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                }
+            }
+            Text(weight, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.background(Color.White, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp))
+        }
+    }
+}
+
+@Composable
+fun BodyMeasurementsCard() {
+    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                 Icon(Icons.Default.Straighten, contentDescription = "Medidas Corporales", tint = Color.Blue.copy(alpha=0.8f))
+                 Text("Medidas Corporales", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            }
+            Text("Registra y sigue la evolución de tus medidas", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+
+            // Placeholder measurements
+            MeasurementItem(name = "Pecho", value = "98 cm", change = "+2 cm este mes", positive = true)
+            MeasurementItem(name = "Cintura", value = "80 cm", change = "-3 cm este mes", positive = false)
+            MeasurementItem(name = "Brazos", value = "38 cm", change = "+1 cm este mes", positive = true)
+            MeasurementItem(name = "Piernas", value = "58 cm", change = "+1.5 cm este mes", positive = true)
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Add, contentDescription = "Registrar Medidas")
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Registrar Medidas")
+            }
+        }
+    }
+}
+
+@Composable
+fun MeasurementItem(name: String, value: String, change: String, positive: Boolean) {
+    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MutedGreen.copy(alpha = 0.3f))) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text(name, style = MaterialTheme.typography.titleMedium)
+            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    if (positive) Icons.Default.TrendingUp else Icons.Default.TrendingDown, 
+                    contentDescription = null, 
+                    tint = if(positive) MaterialTheme.colorScheme.primary else Color.Red
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(change, color = if(positive) MaterialTheme.colorScheme.primary else Color.Red, style = MaterialTheme.typography.bodySmall)
+            }
+        }
     }
 }
 
