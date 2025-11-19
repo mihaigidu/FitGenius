@@ -10,6 +10,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.util.Calendar
+import java.util.Date
 import java.util.concurrent.TimeUnit
 
 class ScalewayAIService {
@@ -30,7 +32,21 @@ class ScalewayAIService {
     }
 
     private fun buildPrompt(profile: UserProfile): String {
-        val menstrualPhase = profile.menstrualPhase
+        val menstrualPhase = profile.lastPeriodDate?.let { lastPeriod ->
+            val today = Calendar.getInstance()
+            val periodStart = Calendar.getInstance().apply { time = Date(lastPeriod) }
+            val daysSincePeriod = ((today.timeInMillis - periodStart.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+            if (daysSincePeriod < 0) return@let null // Evita problemas con fechas futuras
+            val dayOfCycle = daysSincePeriod % profile.cycleLength
+
+            when {
+                dayOfCycle in 0..4 -> "Menstruación"
+                dayOfCycle in 5..11 -> "Fase Folicular"
+                dayOfCycle in 12..15 -> "Ovulación"
+                else -> "Fase Lútea"
+            }
+        }
+
         val menstrualInfo = if (profile.gender == "Mujer" && menstrualPhase != null) {
             "\n- Fase menstrual actual: $menstrualPhase"
         } else ""

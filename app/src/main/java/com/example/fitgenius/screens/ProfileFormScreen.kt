@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,7 +12,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.*
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,6 +25,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.fitgenius.data.UserProfile
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -191,6 +196,7 @@ private fun GenderButton(
 }
 
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 fun PersonalDataStep(profileState: UserProfile, onProfileChange: (UserProfile) -> Unit) {
     FormSection("Datos Físicos") {
@@ -213,31 +219,26 @@ fun PersonalDataStep(profileState: UserProfile, onProfileChange: (UserProfile) -
 
         Text("Peso (kg)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
         OutlinedTextField(
-            value = profileState.weight.toString().takeIf { it != "0.0" } ?: "",
-            onValueChange = { onProfileChange(profileState.copy(weight = it.toDoubleOrNull() ?: 0.0)) },
+            value = profileState.weight.toString().takeIf { it != "0" } ?: "",
+            onValueChange = { onProfileChange(profileState.copy(weight = it.toIntOrNull() ?: 0)) },
             placeholder = { Text("Ej: 70") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
 
         Text("Altura (cm)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
         OutlinedTextField(
-            value = profileState.height.toString().takeIf { it != "0.0" } ?: "",
-            onValueChange = { onProfileChange(profileState.copy(height = it.toDoubleOrNull() ?: 0.0)) },
+            value = profileState.height.toString().takeIf { it != "0" } ?: "",
+            onValueChange = { onProfileChange(profileState.copy(height = it.toIntOrNull() ?: 0)) },
             placeholder = { Text("Ej: 170") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(modifier = Modifier.height(16.dp))
 
         if (profileState.gender == "Mujer") {
-            DropdownMenuField(
-                options = listOf("Menstruación", "Folicular", "Ovulación", "Lútea"),
-                selectedOption = profileState.menstrualPhase ?: "Menstruación",
-                onSelect = { onProfileChange(profileState.copy(menstrualPhase = it)) },
-                label = "Fase Menstrual"
-            )
+            MenstrualCycleTracker(profileState = profileState, onProfileChange = onProfileChange)
             Spacer(modifier = Modifier.height(16.dp))
         }
 
@@ -248,6 +249,89 @@ fun PersonalDataStep(profileState: UserProfile, onProfileChange: (UserProfile) -
         )
     }
 }
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3AdaptiveApi::class)
+@Composable
+fun MenstrualCycleTracker(profileState: UserProfile, onProfileChange: (UserProfile) -> Unit) {
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+
+    val selectedDate = profileState.lastPeriodDate?.let { Date(it) }
+    val formattedDate = selectedDate?.let { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it) } ?: "No seleccionada"
+
+    val menstrualPhase = selectedDate?.let {
+        val today = Calendar.getInstance()
+        val periodStart = Calendar.getInstance().apply { time = it }
+        val daysSincePeriod = ((today.timeInMillis - periodStart.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
+        val dayOfCycle = daysSincePeriod % profileState.cycleLength
+
+        when {
+            dayOfCycle in 0..4 -> "Menstruación"
+            dayOfCycle in 5..11 -> "Fase Folicular"
+            dayOfCycle in 12..15 -> "Ovulación"
+            else -> "Fase Lútea"
+        }
+    } ?: ""
+
+    Column {
+        Text("Seguimiento Menstrual", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        OutlinedTextField(
+            value = formattedDate,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Fecha de inicio del último período") },
+            trailingIcon = {
+                Icon(
+                    Icons.Default.DateRange,
+                    contentDescription = "Seleccionar fecha",
+                    modifier = Modifier.clickable { showDatePicker = true }
+                )
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        if (showDatePicker) {
+            DatePickerDialog(
+                onDismissRequest = { showDatePicker = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showDatePicker = false
+                        datePickerState.selectedDateMillis?.let {
+                            onProfileChange(profileState.copy(lastPeriodDate = it))
+                        }
+                    }) {
+                        Text("OK")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showDatePicker = false }) {
+                        Text("Cancelar")
+                    }
+                }
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = profileState.cycleLength.toString(),
+            onValueChange = { onProfileChange(profileState.copy(cycleLength = it.toIntOrNull() ?: 28)) },
+            label = { Text("Duración del ciclo (días)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        if (menstrualPhase.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Fase menstrual actual: $menstrualPhase", style = MaterialTheme.typography.bodyMedium)
+        }
+    }
+}
+
 
 @Composable
 fun GoalStep(profileState: UserProfile, onProfileChange: (UserProfile) -> Unit) {

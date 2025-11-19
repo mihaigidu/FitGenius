@@ -10,17 +10,18 @@ data class UserProfile(
     var profileImageUri: String? = null, // NUEVO: Para la foto de perfil
 
     // Parte 2: Detalles del Perfil
-    var gender: String = "Hombre",
-    var menstrualPhase: String? = null,
+    var gender: String = "",
+    var lastPeriodDate: Long? = null, // NUEVO: Para el calendario menstrual
+    var cycleLength: Int = 28, // NUEVO: Duración del ciclo menstrual
     var age: Int = 0,
-    var weight: Double = 0.0,
-    var height: Double = 0.0,
-    var goal: String = "Mantenimiento",
+    var weight: Int = 0,
+    var height: Int = 0,
+    var goal: String = "",
     var activityLevel: String = "Moderado",
 
     // Nuevos campos
     var trainingDays: Int = 3,
-    var trainingLocation: String = "Gimnasio",
+    var trainingLocation: String = "",
     var favoriteExercises: List<String> = emptyList(),
     var allergies: String = "",
     var foodPreferences: String = ""
