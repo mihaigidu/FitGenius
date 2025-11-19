@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,78 +21,185 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.example.fitgenius.data.AIResponse
 import com.example.fitgenius.data.UserProfile
 import com.example.fitgenius.ui.theme.BrightBlue
 import com.example.fitgenius.ui.theme.PetrolGreen
 import com.example.fitgenius.ui.theme.PureWhite
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 data class DayPlan(val title: String, val content: String)
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    navController: NavController,
+    navController: NavHostController,
     userProfile: UserProfile?,
     aiResponse: AIResponse?,
     isLoading: Boolean,
     errorMessage: String?
 ) {
-
-    val gradientBackground = Brush.verticalGradient(
-        listOf(
-            PetrolGreen.copy(alpha = 0.80f),
-            BrightBlue.copy(alpha = 0.60f)
-        )
-    )
+    val pagerState = rememberPagerState(pageCount = { 4 })
+    val coroutineScope = rememberCoroutineScope()
 
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        "Tu Plan de Hoy",
-                        fontWeight = FontWeight.Bold,
-                        color = PureWhite
-                    )
-                },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.Transparent,
-                    titleContentColor = PureWhite
-                ),
+            TopAppBar(
+                title = { Text("FitGenius", fontWeight = FontWeight.Bold) },
                 actions = {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            Icons.Default.AccountCircle,
-                            contentDescription = "Perfil",
-                            tint = PureWhite
-                        )
+                    IconButton(onClick = { /* TODO: Implementar logout */ }) {
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = "Salir")
                     }
                 }
             )
         },
-        containerColor = Color.Transparent
-    ) { padding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(gradientBackground)
-                .padding(padding)
-        ) {
+    ) { paddingValues ->
+        Column(modifier = Modifier.padding(paddingValues)) {
+            TabRow(selectedTabIndex = pagerState.currentPage) {
+                Tab(selected = pagerState.currentPage == 0, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } }, text = { Text("General") })
+                Tab(selected = pagerState.currentPage == 1, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } }, text = { Text("Rutina") })
+                Tab(selected = pagerState.currentPage == 2, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } }, text = { Text("Dieta") })
+                Tab(selected = pagerState.currentPage == 3, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(3) } }, text = { Text("Progreso") })
+            }
 
-            when {
-                isLoading -> LoadingState()
-                errorMessage != null -> ErrorState(errorMessage) { }
-                aiResponse != null -> {
-                    val routineDays = remember(aiResponse.routine) { parsePlan(aiResponse.routine) }
-                    val dietDays = remember(aiResponse.diet) { parsePlan(aiResponse.diet) }
-                    DailyPlanScreen(routineDays, dietDays)
+            HorizontalPager(state = pagerState) {
+                page ->
+                when (page) {
+                    0 -> GeneralScreen(userProfile = userProfile, aiResponse = aiResponse, isLoading = isLoading, errorMessage = errorMessage)
+                    1 -> RoutineScreen(aiResponse = aiResponse)
+                    2 -> DietScreen(aiResponse = aiResponse)
+                    3 -> ProgressScreen()
                 }
-                else -> NoPlanState { }
             }
         }
     }
+}
+
+@Composable
+fun GeneralScreen(userProfile: UserProfile?, aiResponse: AIResponse?, isLoading: Boolean, errorMessage: String?) {
+    when {
+        isLoading -> LoadingState()
+        errorMessage != null -> ErrorState(errorMessage) { }
+        aiResponse != null && userProfile != null -> {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("Hola, ${userProfile.name}", style = MaterialTheme.typography.headlineSmall)
+                ProfileSummaryCard(userProfile = userProfile)
+                TrainingSummaryCard(aiResponse = aiResponse)
+                NutritionSummaryCard(aiResponse = aiResponse)
+            }
+        }
+        else -> NoPlanState { }
+    }
+}
+
+@Composable
+fun ProfileSummaryCard(userProfile: UserProfile) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Tu Perfil", style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
+                ProfileInfoChip("Objetivo", userProfile.goal)
+                ProfileInfoChip("Nivel", userProfile.activityLevel)
+                ProfileInfoChip("Peso", "${userProfile.weight} kg")
+            }
+        }
+    }
+}
+
+@Composable
+fun ProfileInfoChip(label: String, value: String) {
+    Card(shape = RoundedCornerShape(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(label, style = MaterialTheme.typography.labelMedium)
+            Text(value, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+
+@Composable
+fun TrainingSummaryCard(aiResponse: AIResponse) {
+    val todayRoutine = remember(aiResponse.routine) { getTodayPlan(aiResponse.routine) }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Entrenamiento", style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(8.dp))
+            if (todayRoutine != null) {
+                Text("Hoy: ${todayRoutine.title}")
+                Text(todayRoutine.content.lines().firstOrNull() ?: "")
+                Button(onClick = { /*TODO*/ }) {
+                    Text("Listo para entrenar")
+                }
+            } else {
+                Text("Descanso.")
+            }
+        }
+    }
+}
+
+
+@Composable
+fun NutritionSummaryCard(aiResponse: AIResponse) {
+    val todayDiet = remember(aiResponse.diet) { getTodayPlan(aiResponse.diet) }
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("Nutrición", style = MaterialTheme.typography.titleLarge)
+            Spacer(modifier = Modifier.height(8.dp))
+            if (todayDiet != null) {
+                Text(todayDiet.content.lines().firstOrNull() ?: "")
+            } else {
+                Text("Sin plan de dieta para hoy.")
+            }
+        }
+    }
+}
+
+
+@Composable
+fun RoutineScreen(aiResponse: AIResponse?) {
+    if (aiResponse == null) {
+        NoPlanState { }
+        return
+    }
+    val routineDays = remember(aiResponse.routine) { parsePlan(aiResponse.routine) }
+    DayPager(plans = routineDays, initialIndex = getTodayIndex())
+}
+
+@Composable
+fun DietScreen(aiResponse: AIResponse?) {
+    if (aiResponse == null) {
+        NoPlanState { }
+        return
+    }
+    val dietDays = remember(aiResponse.diet) { parsePlan(aiResponse.diet) }
+    DayPager(plans = dietDays, initialIndex = getTodayIndex())
+}
+
+@Composable
+fun ProgressScreen() {
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("Próximamente...", style = MaterialTheme.typography.headlineMedium)
+    }
+}
+
+fun getTodayIndex(): Int {
+    val calendar = Calendar.getInstance()
+    return (calendar.get(Calendar.DAY_OF_WEEK) + 5) % 7
+}
+
+fun getTodayPlan(planText: String): DayPlan? {
+    val plans = parsePlan(planText)
+    val todayIndex = getTodayIndex()
+    return plans.getOrNull(todayIndex)
 }
 
 @Composable
@@ -237,18 +345,17 @@ fun NoPlanState(onCreatePlan: () -> Unit) {
     ) {
         Text(
             "Bienvenido a FitGenius",
-            style = MaterialTheme.typography.headlineMedium.copy(color = PureWhite)
+            style = MaterialTheme.typography.headlineMedium
         )
         Text(
             "Aún no tienes un plan generado.",
-            style = MaterialTheme.typography.bodyLarge.copy(color = PureWhite)
+            style = MaterialTheme.typography.bodyLarge
         )
         Spacer(Modifier.height(20.dp))
         Button(
-            onClick = onCreatePlan,
-            colors = ButtonDefaults.buttonColors(containerColor = PureWhite)
+            onClick = onCreatePlan
         ) {
-            Text("Crear Plan", color = PetrolGreen, fontWeight = FontWeight.Bold)
+            Text("Crear Plan", fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -260,11 +367,11 @@ fun LoadingState() {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        CircularProgressIndicator(color = PureWhite)
+        CircularProgressIndicator()
         Spacer(Modifier.height(16.dp))
         Text(
             "Generando tu plan personalizado...",
-            style = MaterialTheme.typography.titleMedium.copy(color = PureWhite)
+            style = MaterialTheme.typography.titleMedium
         )
     }
 }
@@ -281,7 +388,7 @@ fun ErrorState(msg: String, onRetry: () -> Unit) {
             style = MaterialTheme.typography.headlineSmall.copy(color = Color.Red)
         )
         Spacer(Modifier.height(8.dp))
-        Text(msg, color = PureWhite)
+        Text(msg)
         Spacer(Modifier.height(16.dp))
         Button(onClick = onRetry) { Text("Reintentar") }
     }

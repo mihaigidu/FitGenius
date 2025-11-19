@@ -31,27 +31,23 @@ fun ProfileFormScreen(
     isEditing: Boolean
 ) {
     var profileState by remember { mutableStateOf(userProfile) }
-    val exerciseOptions = listOf("Correr", "Nadar", "Ciclismo", "Pesas", "Yoga", "Pilates", "CrossFit")
+    var currentStep by remember { mutableStateOf(1) }
+    val totalSteps = 3
 
-    // --- Progress Calculation ---
-    val totalSteps = 7
-    val completedSteps = listOf(
-        profileState.age > 0,
-        profileState.weight > 0,
-        profileState.height > 0,
-        profileState.goal.isNotBlank(),
-        profileState.activityLevel.isNotBlank(),
-        profileState.trainingDays > 0,
-        profileState.trainingLocation.isNotBlank()
-    ).count { it }
-    val progress by animateFloatAsState(targetValue = completedSteps.toFloat() / totalSteps.toFloat(), label = "progress")
+    val progress by animateFloatAsState(targetValue = (currentStep -1).toFloat() / totalSteps.toFloat(), label = "progress")
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (isEditing) "Editar Perfil" else "Tu Perfil (Paso 2)") },
+                title = { Text(if (isEditing) "Editar Perfil" else "Tu Perfil (Paso $currentStep de $totalSteps)") },
                 navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
+                    IconButton(onClick = {
+                        if (currentStep > 1) {
+                            currentStep--
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 },
@@ -59,15 +55,40 @@ fun ProfileFormScreen(
             )
         },
         bottomBar = {
-            Button(
-                onClick = {
-                    onProfileComplete(profileState, isEditing, null)
-                    if (isEditing) navController.popBackStack() else navController.navigate("home") { popUpTo("login") { inclusive = true } }
-                },
-                modifier = Modifier.fillMaxWidth().padding(16.dp).height(50.dp),
-                shape = MaterialTheme.shapes.medium
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(text = if (isEditing) "GUARDAR CAMBIOS" else "GENERAR MI PLAN", fontWeight = FontWeight.Bold)
+                if (currentStep > 1) {
+                    Button(
+                        onClick = { currentStep-- },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(50.dp),
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Text(text = "ANTERIOR")
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                }
+                Button(
+                    onClick = {
+                        if (currentStep < totalSteps) {
+                            currentStep++
+                        } else {
+                            onProfileComplete(profileState, isEditing, null)
+                            if (isEditing) navController.popBackStack() else navController.navigate("home") { popUpTo("login") { inclusive = true } }
+                        }
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(50.dp),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Text(text = if (currentStep < totalSteps) "SIGUIENTE" else if (isEditing) "GUARDAR CAMBIOS" else "GENERAR MI PLAN", fontWeight = FontWeight.Bold)
+                }
             }
         }
     ) { paddingValues ->
@@ -88,47 +109,103 @@ fun ProfileFormScreen(
                     .fillMaxSize()
                     .padding(horizontal = 24.dp)
                     .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(28.dp)
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
-
-                // --- SECCIÓN: DATOS FÍSICOS ---
-                FormSection(title = "Tus Medidas") {
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        OutlinedTextField(value = profileState.age.toString().takeIf { it != "0" } ?: "", onValueChange = { profileState = profileState.copy(age = it.toIntOrNull() ?: 0) }, label = { Text("Edad") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.weight(1f))
-                        DropdownMenuField(options = listOf("Hombre", "Mujer"), selectedOption = profileState.gender, onSelect = { profileState = profileState.copy(gender = it) }, label = "Género", modifier = Modifier.weight(1f))
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                         OutlinedTextField(value = profileState.weight.toString().takeIf { it != "0.0" } ?: "", onValueChange = { profileState = profileState.copy(weight = it.toDoubleOrNull() ?: 0.0) }, label = { Text("Peso (kg)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
-                         OutlinedTextField(value = profileState.height.toString().takeIf { it != "0.0" } ?: "", onValueChange = { profileState = profileState.copy(height = it.toDoubleOrNull() ?: 0.0) }, label = { Text("Altura (cm)") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), modifier = Modifier.weight(1f))
-                    }
-                    if (profileState.gender == "Mujer") {
-                        DropdownMenuField(options = listOf("Menstruación", "Folicular", "Ovulación", "Lútea"), selectedOption = profileState.menstrualPhase ?: "Menstruación", onSelect = { profileState = profileState.copy(menstrualPhase = it) }, label = "Fase Menstrual")
-                    }
-                }
-
-                // --- SECCIÓN: OBJETIVOS ---
-                FormSection("Tus Metas") {
-                     DropdownMenuField(options = listOf("Perder peso", "Ganar músculo", "Mantenimiento", "Tonificar"), selectedOption = profileState.goal, onSelect = { profileState = profileState.copy(goal = it) }, label = "Mi objetivo principal")
-                     DropdownMenuField(options = listOf("Sedentario (poco o nada)", "Moderado (1-3 días/sem)", "Activo (3-5 días/sem)", "Muy activo (6-7 días/sem)"), selectedOption = profileState.activityLevel, onSelect = { profileState = profileState.copy(activityLevel = it) }, label = "Mi nivel de actividad")
-                     DropdownMenuField(options = (3..7).map { "$it días" }, selectedOption = "${profileState.trainingDays} días", onSelect = { profileState = profileState.copy(trainingDays = it.removeSuffix(" días").toIntOrNull() ?: 3) }, label = "Días de entreno a la semana")
-                     DropdownMenuField(options = listOf("En casa", "Gimnasio"), selectedOption = profileState.trainingLocation, onSelect = { profileState = profileState.copy(trainingLocation = it) }, label = "Lugar de entrenamiento")
-                }
-
-                // --- SECCIÓN: PREFERENCIAS ---
-                FormSection("Tus Preferencias") {
-                    MultiSelectChipGroup(title = "Ejercicios que te gustan (opcional)", options = exerciseOptions, selectedOptions = profileState.favoriteExercises) { newSelection ->
-                        profileState = profileState.copy(favoriteExercises = newSelection)
-                    }
-                    Spacer(Modifier.height(16.dp))
-                    OutlinedTextField(value = profileState.allergies, onValueChange = { profileState = profileState.copy(allergies = it) }, label = { Text("Alergias o intolerancias") }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("Ej: Lactosa, gluten, nueces...") })
-                    OutlinedTextField(value = profileState.foodPreferences, onValueChange = { profileState = profileState.copy(foodPreferences = it) }, label = { Text("Preferencias de comida") }, modifier = Modifier.fillMaxWidth(), placeholder = { Text("Ej: Vegano, sin carne roja...") })
+                when (currentStep) {
+                    1 -> GenderStep(profileState = profileState, onProfileChange = { profileState = it })
+                    2 -> PersonalDataStep(profileState = profileState, onProfileChange = { profileState = it })
+                    3 -> PreferencesStep(profileState = profileState, onProfileChange = { profileState = it })
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
+
+@Composable
+fun GenderStep(profileState: UserProfile, onProfileChange: (UserProfile) -> Unit) {
+    FormSection("Tu Género") {
+        DropdownMenuField(
+            options = listOf("Hombre", "Mujer"),
+            selectedOption = profileState.gender,
+            onSelect = { onProfileChange(profileState.copy(gender = it)) },
+            label = "Género"
+        )
+    }
+}
+
+@Composable
+fun PersonalDataStep(profileState: UserProfile, onProfileChange: (UserProfile) -> Unit) {
+    FormSection("Tus Medidas") {
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            OutlinedTextField(
+                value = profileState.age.toString().takeIf { it != "0" } ?: "",
+                onValueChange = { onProfileChange(profileState.copy(age = it.toIntOrNull() ?: 0)) },
+                label = { Text("Edad") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.weight(1f)
+            )
+            OutlinedTextField(
+                value = profileState.weight.toString().takeIf { it != "0.0" } ?: "",
+                onValueChange = { onProfileChange(profileState.copy(weight = it.toDoubleOrNull() ?: 0.0)) },
+                label = { Text("Peso (kg)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                modifier = Modifier.weight(1f)
+            )
+        }
+        OutlinedTextField(
+            value = profileState.height.toString().takeIf { it != "0.0" } ?: "",
+            onValueChange = { onProfileChange(profileState.copy(height = it.toDoubleOrNull() ?: 0.0)) },
+            label = { Text("Altura (cm)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (profileState.gender == "Mujer") {
+            DropdownMenuField(
+                options = listOf("Menstruación", "Folicular", "Ovulación", "Lútea"),
+                selectedOption = profileState.menstrualPhase ?: "Menstruación",
+                onSelect = { onProfileChange(profileState.copy(menstrualPhase = it)) },
+                label = "Fase Menstrual"
+            )
+        }
+    }
+}
+
+@Composable
+fun PreferencesStep(profileState: UserProfile, onProfileChange: (UserProfile) -> Unit) {
+    val exerciseOptions = listOf("Correr", "Nadar", "Ciclismo", "Pesas", "Yoga", "Pilates", "CrossFit")
+
+    FormSection("Tus Preferencias") {
+        DropdownMenuField(
+            options = listOf("En casa", "Gimnasio"),
+            selectedOption = profileState.trainingLocation,
+            onSelect = { onProfileChange(profileState.copy(trainingLocation = it)) },
+            label = "Lugar de entrenamiento"
+        )
+        OutlinedTextField(
+            value = profileState.allergies,
+            onValueChange = { onProfileChange(profileState.copy(allergies = it)) },
+            label = { Text("Alergias o intolerancias") },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Ej: Lactosa, gluten, nueces...") }
+        )
+        OutlinedTextField(
+            value = profileState.foodPreferences,
+            onValueChange = { onProfileChange(profileState.copy(foodPreferences = it)) },
+            label = { Text("Preferencias de comida") },
+            modifier = Modifier.fillMaxWidth(),
+            placeholder = { Text("Ej: Vegano, sin carne roja...") }
+        )
+        MultiSelectChipGroup(
+            title = "Ejercicios que te gustan (opcional)",
+            options = exerciseOptions,
+            selectedOptions = profileState.favoriteExercises
+        ) { newSelection ->
+            onProfileChange(profileState.copy(favoriteExercises = newSelection))
+        }
+    }
+}
+
 
 @Composable
 fun FormSection(title: String, content: @Composable ColumnScope.() -> Unit) {
