@@ -25,16 +25,7 @@ fun NavGraph(
 ) {
     NavHost(navController = navController, startDestination = startDestination) {
         composable("login") {
-            LoginScreen(navController)
-        }
-        composable("register") {
-            RegisterScreen(
-                navController = navController,
-                onUserRegistered = {
-                    onUserRegistered(it)
-                    navController.navigate("profile_form/false")
-                }
-            )
+            AuthScreen(navController = navController, onUserRegistered = onUserRegistered)
         }
         composable(
             route = "profile_form/{isEditing}",
