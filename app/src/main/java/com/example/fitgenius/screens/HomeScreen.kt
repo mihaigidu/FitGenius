@@ -155,7 +155,8 @@ fun NutritionSummaryCard(aiResponse: AIResponse) {
             Text("Nutrición", style = MaterialTheme.typography.titleLarge)
             Spacer(modifier = Modifier.height(8.dp))
             if (todayDiet != null) {
-                Text(todayDiet.content.lines().firstOrNull() ?: "")
+                val currentMeal = remember(todayDiet.content) { getCurrentMeal(todayDiet.content) }
+                Text(currentMeal)
             } else {
                 Text("Sin plan de dieta para hoy.")
             }
@@ -200,6 +201,57 @@ fun getTodayPlan(planText: String): DayPlan? {
     val plans = parsePlan(planText)
     val todayIndex = getTodayIndex()
     return plans.getOrNull(todayIndex)
+}
+
+fun getCurrentMeal(dietPlanContent: String): String {
+    val calendar = Calendar.getInstance()
+    val currentHour = calendar.get(Calendar.HOUR_OF_DAY)
+
+    val mealTimeName = when (currentHour) {
+        in 5..10 -> "Desayuno"
+        in 11..14 -> "Comida"
+        in 15..18 -> "Merienda"
+        in 19..22 -> "Cena"
+        else -> null
+    }
+
+    if (mealTimeName == null) {
+        return "Revisa tu plan de dieta para ver tus comidas."
+    }
+
+    val mealKeywords = mapOf(
+        "Desayuno" to listOf("DESAYUNO"),
+        "Comida" to listOf("COMIDA", "ALMUERZO"),
+        "Merienda" to listOf("MERIENDA"),
+        "Cena" to listOf("CENA")
+    )
+
+    val targetKeywords = mealKeywords[mealTimeName] ?: emptyList()
+    val allLines = dietPlanContent.lines()
+
+    val mealContent = StringBuilder()
+    var capturing = false
+
+    for (line in allLines) {
+        val trimmedUpper = line.trim().uppercase()
+        val isNewMealHeader = mealKeywords.values.flatten().any { keyword -> trimmedUpper.startsWith(keyword) }
+
+        if (isNewMealHeader) {
+            if (capturing) break
+            if (targetKeywords.any { keyword -> trimmedUpper.startsWith(keyword) }) {
+                capturing = true
+                mealContent.append(line).append("\n")
+            }
+        } else if (capturing) {
+            mealContent.append(line).append("\n")
+        }
+    }
+
+    if (mealContent.isNotBlank()) {
+        return "Para tu $mealTimeName:\n${mealContent.toString().trim()}"
+    }
+
+    return "Es hora de tu $mealTimeName. Revisa tu plan de dieta completo para ver los detalles."
 }
 
 @Composable

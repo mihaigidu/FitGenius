@@ -2,6 +2,7 @@ package com.example.fitgenius.screens
 
 import android.net.Uri
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -32,7 +33,7 @@ fun ProfileFormScreen(
 ) {
     var profileState by remember { mutableStateOf(userProfile) }
     var currentStep by remember { mutableStateOf(1) }
-    val totalSteps = 3
+    val totalSteps = 4
 
     val progress by animateFloatAsState(targetValue = (currentStep -1).toFloat() / totalSteps.toFloat(), label = "progress")
 
@@ -114,7 +115,8 @@ fun ProfileFormScreen(
                 when (currentStep) {
                     1 -> GenderStep(profileState = profileState, onProfileChange = { profileState = it })
                     2 -> PersonalDataStep(profileState = profileState, onProfileChange = { profileState = it })
-                    3 -> PreferencesStep(profileState = profileState, onProfileChange = { profileState = it })
+                    3 -> GoalStep(profileState = profileState, onProfileChange = { profileState = it })
+                    4 -> PreferencesStep(profileState = profileState, onProfileChange = { profileState = it })
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
@@ -124,48 +126,191 @@ fun ProfileFormScreen(
 
 @Composable
 fun GenderStep(profileState: UserProfile, onProfileChange: (UserProfile) -> Unit) {
-    FormSection("Tu Género") {
-        DropdownMenuField(
-            options = listOf("Hombre", "Mujer"),
-            selectedOption = profileState.gender,
-            onSelect = { onProfileChange(profileState.copy(gender = it)) },
-            label = "Género"
+    FormSection("Información Básica") {
+        Text(
+            text = "Cuéntanos sobre ti para personalizar tu experiencia",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
+        Text("Género", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+
+        val genders = listOf("Hombre", "Mujer")
+        genders.forEach { gender ->
+            GenderButton(
+                text = gender,
+                isSelected = profileState.gender == gender,
+                onClick = { onProfileChange(profileState.copy(gender = gender)) }
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+        }
     }
 }
 
 @Composable
-fun PersonalDataStep(profileState: UserProfile, onProfileChange: (UserProfile) -> Unit) {
-    FormSection("Tus Medidas") {
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            OutlinedTextField(
-                value = profileState.age.toString().takeIf { it != "0" } ?: "",
-                onValueChange = { onProfileChange(profileState.copy(age = it.toIntOrNull() ?: 0)) },
-                label = { Text("Edad") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.weight(1f)
-            )
-            OutlinedTextField(
-                value = profileState.weight.toString().takeIf { it != "0.0" } ?: "",
-                onValueChange = { onProfileChange(profileState.copy(weight = it.toDoubleOrNull() ?: 0.0)) },
-                label = { Text("Peso (kg)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.weight(1f)
+private fun GenderButton(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent,
+            contentColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            if (isSelected) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(4.dp))
+                )
+                Spacer(modifier = Modifier.width(16.dp))
+            }
+            Text(
+                text = text,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
             )
         }
+    }
+}
+
+
+@Composable
+fun PersonalDataStep(profileState: UserProfile, onProfileChange: (UserProfile) -> Unit) {
+    FormSection("Datos Físicos") {
+        Text(
+            text = "Esta información nos ayuda a crear rutinas más precisas",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        Text("Edad (años)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
         OutlinedTextField(
-            value = profileState.height.toString().takeIf { it != "0.0" } ?: "",
-            onValueChange = { onProfileChange(profileState.copy(height = it.toDoubleOrNull() ?: 0.0)) },
-            label = { Text("Altura (cm)") },
+            value = profileState.age.toString().takeIf { it != "0" } ?: "",
+            onValueChange = { onProfileChange(profileState.copy(age = it.toIntOrNull() ?: 0)) },
+            placeholder = { Text("Ej: 25") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text("Peso (kg)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+        OutlinedTextField(
+            value = profileState.weight.toString().takeIf { it != "0.0" } ?: "",
+            onValueChange = { onProfileChange(profileState.copy(weight = it.toDoubleOrNull() ?: 0.0)) },
+            placeholder = { Text("Ej: 70") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             modifier = Modifier.fillMaxWidth()
         )
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text("Altura (cm)", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+        OutlinedTextField(
+            value = profileState.height.toString().takeIf { it != "0.0" } ?: "",
+            onValueChange = { onProfileChange(profileState.copy(height = it.toDoubleOrNull() ?: 0.0)) },
+            placeholder = { Text("Ej: 170") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
         if (profileState.gender == "Mujer") {
             DropdownMenuField(
                 options = listOf("Menstruación", "Folicular", "Ovulación", "Lútea"),
                 selectedOption = profileState.menstrualPhase ?: "Menstruación",
                 onSelect = { onProfileChange(profileState.copy(menstrualPhase = it)) },
                 label = "Fase Menstrual"
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
+        Text(
+            text = "Estos datos son opcionales pero nos ayudan a crear mejores recomendaciones",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun GoalStep(profileState: UserProfile, onProfileChange: (UserProfile) -> Unit) {
+    val goals = listOf(
+        "Perder Peso" to "Quemar grasa y reducir medidas",
+        "Ganar Masa Muscular" to "Aumentar músculo y fuerza",
+        "Mantener Forma" to "Tonificar y mantenerse activo",
+        "Mejorar Resistencia" to "Aumentar capacidad cardiovascular"
+    )
+
+    FormSection("Tu Objetivo") {
+        Text(
+            text = "¿Qué quieres lograr con FitAI Coach?",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+
+        goals.forEach { (title, subtitle) ->
+            GoalButton(
+                title = title,
+                subtitle = subtitle,
+                isSelected = profileState.goal == title,
+                onClick = { onProfileChange(profileState.copy(goal = title)) }
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+    }
+}
+
+@Composable
+private fun GoalButton(
+    title: String,
+    subtitle: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    OutlinedButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else Color.Transparent
+        ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        ) {
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
