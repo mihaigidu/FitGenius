@@ -49,6 +49,7 @@ class ScalewayAIService {
 
         // NUEVO: Prompt mejorado con instrucciones más estrictas
         return """
+            Quiero que me generes la respuesta lo mas rapido que puedas y en el menor tiempo posible. Tambien quiero que las respuestas que des sean coeerentes y se adapten a lo que el usario solicita.
 Eres un experto entrenador personal y nutricionista de élite. Tu misión es crear un plan semanal 100% personalizado, detallado y con un formato muy específico.
 
 **PERFIL DEL USUARIO:**
@@ -79,9 +80,9 @@ ${if (profile.gender == "Mujer" && menstrualPhase != null) {
         } else ""}
 
 **SECCIÓN 2: PLAN DE DIETA SEMANAL**
-Genera un plan de comidas detallado para **los 7 días de la semana (Lunes a Domingo)**.
-Para CADA DÍA de la semana, usa el siguiente formato:
-- **TÍTULO OBLIGATORIO:** El título DEBE ser el día de la semana, seguido de dos puntos y un recuento de las calorías totales aproximadas. Ejemplo: `Lunes: ~2250 kcal`.
+Genera un plan de comidas detallado para **7 días**.
+Para CADA DÍA, usa el siguiente formato:
+- **TÍTULO OBLIGATORIO:** El título DEBE empezar con `Día X:` seguido de un recuento de las calorías totales aproximadas. Ejemplo: `Día 1: ~2250 kcal`.
 - Detalla 5 comidas (Desayuno, Media Mañana, Almuerzo, Merienda, Cena) con alimentos y cantidades.
 - El plan DEBE excluir estrictamente los alérgenos: ${profile.allergies}.
 - Incluye un plan de hidratación diario.
