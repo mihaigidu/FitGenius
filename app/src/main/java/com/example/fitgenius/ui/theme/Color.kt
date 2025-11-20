@@ -14,3 +14,4 @@ val DarkSurface = Color(0xFF1E1E1E)       // Color para tarjetas en modo oscuro
 val MediumGrey = Color(0xFFB0B0B0)       // Textos/iconos con énfasis bajo
 val TextColorDark = Color(0xFFEAEAEA)     // Texto principal en modo oscuro
 val TextColorLight = Color(0xFF212121)    // Texto principal en modo claro
+val MutedGreen = Color(0xFFE6F4EA)

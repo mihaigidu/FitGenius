@@ -36,13 +36,14 @@ class MainActivity : ComponentActivity() {
 
                     fun generatePlan(profile: UserProfile, isRegenerating: Boolean = false) {
                         if (isRegenerating) {
-                            aiResponse = null
+                            aiResponse = null // Limpia la respuesta anterior para mostrar el estado de carga
                         }
                         lifecycleScope.launch {
                             isLoading = true
                             errorMessage = null
                             try {
-                                aiResponse = scalewayAIService.generateRoutineAndDiet(profile)
+                                val newResponse = scalewayAIService.generateRoutineAndDiet(profile)
+                                aiResponse = newResponse
                             } catch (e: Exception) {
                                 errorMessage = e.message
                             } finally {
@@ -59,13 +60,25 @@ class MainActivity : ComponentActivity() {
                         errorMessage = errorMessage,
                         onUserRegistered = { profile ->
                             currentUserProfile = profile
+                            // Navega al formulario de perfil, pero no genera el plan aquí
                         },
                         onProfileComplete = { profile, isEditing, imageUri ->
-                            currentUserProfile = profile.copy(
+                            val updatedProfile = profile.copy(
                                 profileImageUri = imageUri?.toString() ?: currentUserProfile?.profileImageUri
                             )
+                            currentUserProfile = updatedProfile
+
+                            // Genera el plan en segundo plano
+                            generatePlan(updatedProfile, isRegenerating = !isEditing)
+
+                            // Navega a la pantalla de inicio inmediatamente
                             if (!isEditing) {
-                                generatePlan(profile)
+                                navController.navigate("home") { 
+                                    // Limpia el backstack para que el usuario no pueda volver al formulario
+                                    popUpTo("auth") { inclusive = true } 
+                                }
+                            } else {
+                                navController.popBackStack()
                             }
                         },
                         onGenerateNewPlan = {

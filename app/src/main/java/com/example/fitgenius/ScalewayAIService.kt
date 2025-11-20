@@ -32,11 +32,12 @@ class ScalewayAIService {
     }
 
     private fun buildPrompt(profile: UserProfile): String {
-        val menstrualPhase = profile.lastPeriodDate?.let { lastPeriod ->
+        val menstrualPhase = profile.lastPeriodDate?.let {
+            lastPeriod ->
             val today = Calendar.getInstance()
             val periodStart = Calendar.getInstance().apply { time = Date(lastPeriod) }
             val daysSincePeriod = ((today.timeInMillis - periodStart.timeInMillis) / (1000 * 60 * 60 * 24)).toInt()
-            if (daysSincePeriod < 0) return@let null // Evita problemas con fechas futuras
+            if (daysSincePeriod < 0) return@let null
             val dayOfCycle = daysSincePeriod % profile.cycleLength
 
             when {
@@ -48,7 +49,7 @@ class ScalewayAIService {
         }
 
         val menstrualInfo = if (profile.gender == "Mujer" && menstrualPhase != null) {
-            "\n- Fase menstrual actual: $menstrualPhase"
+            "\n- Fase menstrual actual: $menstrualPhase (Adaptar intensidad: ${getMenstrualPhaseAdvice(menstrualPhase)})"
         } else ""
 
         val favoriteExercisesInfo = if (profile.favoriteExercises.isNotEmpty()) {
@@ -56,69 +57,99 @@ class ScalewayAIService {
         } else ""
 
         val allergiesInfo = if (profile.allergies.isNotBlank()) {
-            "\n- Alergias a tener en cuenta: ${profile.allergies}"
+            "\n- Alergias (excluir de la dieta): ${profile.allergies}"
         } else ""
 
         val foodPreferencesInfo = if (profile.foodPreferences.isNotBlank()) {
             "\n- Preferencias alimentarias: ${profile.foodPreferences}"
         } else ""
 
-        // NUEVO: Prompt mejorado con instrucciones más estrictas
+        val workoutJsonStructure = """
+        "rutina": {
+          "semana": [
+            {
+              "dia": "Lunes",
+              "nombre": "Hipertrofia - Tren Superior",
+              "duracion": "45",
+              "descripcion": "Rutina de hipertrofia para tren superior, enfocada en pecho y tríceps.",
+              "ejercicios": [
+                { "nombre": "Press de Banca", "series": "4", "repeticiones": "8-12", "descanso": "90s" },
+                { "nombre": "Flexiones", "series": "3", "repeticiones": "Al fallo", "descanso": "60s" }
+              ]
+            }
+          ]
+        }
+        """
+
+        val nutritionJsonStructure = """
+        "dieta": {
+          "semana": [
+            {
+              "dia": "Lunes",
+              "resumen_dia": {
+                "calorias_totales": "2180",
+                "proteinas": "105",
+                "carbohidratos": "160",
+                "grasas": "55",
+                "extra": "Mantén la hidratación durante todo el día, bebe al menos 2.5 litros de agua."
+              },
+              "comidas": [
+                {
+                  "nombre": "Desayuno",
+                  "hora": "08:00",
+                  "calorias": "545",
+                  "alimentos": ["3 huevos revueltos", "2 rebanadas de pan integral", "1 plátano", "Café o té"],
+                  "macros": { "proteinas": "25g", "carbohidratos": "45g", "grasas": "12g" }
+                }
+              ]
+            }
+          ]
+        }
+        """
+
         return """
-            Quiero que me generes la respuesta lo mas rapido que puedas y en el menor tiempo posible. Tambien quiero que las respuestas que des sean coeerentes y se adapten a lo que el usario solicita.
-Eres un experto entrenador personal y nutricionista de élite. Tu misión es crear un plan semanal 100% personalizado, detallado y con un formato muy específico.
+            Eres un experto entrenador personal y nutricionista. Tu misión es generar un plan de entrenamiento y nutrición para el siguiente usuario.
 
-**PERFIL DEL USUARIO:**
-- Nombre: ${profile.name}
-- Género: ${profile.gender}$menstrualInfo
-- Edad: ${profile.age} años
-- Peso: ${profile.weight} kg
-- Altura: ${profile.height} cm
-- Objetivo Principal: ${profile.goal}
-- Nivel de Actividad Física: ${profile.activityLevel}
+            **PERFIL DEL USUARIO:**
+            - Género: ${profile.gender}
+            - Edad: ${profile.age} años
+            - Peso: ${profile.weight} kg
+            - Altura: ${profile.height} cm
+            - Objetivo: ${profile.goal}
+            - Nivel de Actividad: ${profile.activityLevel}
+            - Días de entrenamiento: ${profile.trainingDays}
+            - Lugar de entrenamiento: ${profile.trainingLocation}$menstrualInfo$favoriteExercisesInfo$allergiesInfo$foodPreferencesInfo
 
-**PREFERENCIAS DE ENTRENAMIENTO:**
-- Días de entrenamiento por semana: ${profile.trainingDays}
-- Lugar de entrenamiento: ${profile.trainingLocation}$favoriteExercisesInfo
+            **INSTRUCCIONES DE FORMATO OBLIGATORIO:**
+            Tu respuesta DEBE ser un único objeto JSON válido, sin texto, explicaciones, ni caracteres como ```json o ``` antes o después. El JSON debe tener dos claves en la raíz: "rutina" y "dieta".
 
-**PREFERENCIAS DE DIETA:**$allergiesInfo$foodPreferencesInfo
+            **1. Estructura y Reglas para la clave "rutina":**
+            El valor debe ser un objeto con una clave "semana", que DEBE ser una lista con EXACTAMENTE 7 objetos, uno para cada día de Lunes a Domingo en orden. 
+            - Para los días de entrenamiento, sigue la estructura del ejemplo.
+            - Para los días de descanso, el campo "ejercicios" debe ser una lista vacía `[]` y el campo "descripcion" debe indicar claramente "Día de descanso" o "Descanso activo".
+            - Ejemplo de la estructura:
+            $workoutJsonStructure
 
-**INSTRUCCIONES DE FORMATO (MUY IMPORTANTE):**
-La respuesta DEBE seguir esta estructura de formato para que la aplicación la pueda interpretar. NO uses negrita ni asteriscos en los títulos.
+            **2. Estructura y Reglas para la clave "dieta":**
+            El valor debe ser un objeto con una clave "semana", que DEBE ser una lista con EXACTAMENTE 7 objetos, uno para cada día de Lunes a Domingo en orden.
+            - **VARIEDAD**: Es fundamental que las comidas (desayuno, almuerzo, cena) sean variadas a lo largo de la semana para evitar la monotonía. No repitas las mismas comidas principales todos los días.
+            - Ejemplo de la estructura:
+            $nutritionJsonStructure
 
-**SECCIÓN 1: RUTINA DE ENTRENAMIENTO SEMANAL**
-Crea un plan para los **${profile.trainingDays} días** especificados. Para CADA día de entrenamiento, usa el siguiente formato:
-- **TÍTULO OBLIGATORIO:** El título DEBE empezar con `Día X:` seguido de los grupos musculares principales. Ejemplo: `Día 1: Pecho y Tríceps`.
-- Detalla los ejercicios para el lugar de entrenamiento (${profile.trainingLocation}) con series, repeticiones y descansos.
-- Incluye una sección de calentamiento y enfriamiento para cada sesión.
-${if (profile.gender == "Mujer" && menstrualPhase != null) {
-            "- **ADAPTACIÓN MENSTRUAL:** Adapta la intensidad a la fase ($menstrualPhase) recomendando: ${getMenstrualPhaseAdvice(menstrualPhase)}."
-        } else ""}
-
-**SECCIÓN 2: PLAN DE DIETA SEMANAL**
-Genera un plan de comidas detallado para **7 días**.
-Para CADA DÍA, usa el siguiente formato:
-- **TÍTULO OBLIGATORIO:** El título DEBE empezar con `Día X:` seguido de un recuento de las calorías totales aproximadas. Ejemplo: `Día 1: ~2250 kcal`.
-- Detalla 5 comidas (Desayuno, Media Mañana, Almuerzo, Merienda, Cena) con alimentos y cantidades.
-- El plan DEBE excluir estrictamente los alérgenos: ${profile.allergies}.
-- Incluye un plan de hidratación diario.
-
-**ESTRUCTURA FINAL DE LA RESPUESTA:**
-1. Primero, la **RUTINA DE ENTRENAMIENTO SEMANAL** completa.
-2. Luego, en una nueva línea, escribe la palabra clave `===DIETA===`.
-3. Finalmente, el **PLAN DE DIETA SEMANAL COMPLETO**.
-
-Usa un tono motivador y profesional y añade emojis para hacer la lectura más amena y haz que los emojis se adapten al plan de la dieta.
+            **REGLAS GENERALES DEL JSON:**
+            - El JSON debe estar perfectamente formado para ser analizado directamente.
+            - Todos los valores numéricos (series, repeticiones, calorías, etc.) deben ser strings.
+            - Adapta el plan a TODAS las preferencias y datos del usuario proporcionados.
         """.trimIndent()
     }
 
     private fun getMenstrualPhaseAdvice(phase: String): String {
         return when (phase) {
-            "Menstruación" -> "ejercicios de baja-moderada intensidad, yoga, caminatas, evitar ejercicios de alto impacto"
-            "Folicular" -> "aumentar intensidad gradualmente, buen momento para entrenamientos de fuerza"
-            "Ovulación" -> "máxima energía, ideal para entrenamientos intensos y levantamiento de peso"
-            "Lútea" -> "mantener intensidad moderada, enfocarse en resistencia, incluir más descanso"
-            else -> "ajustar según cómo te sientas"
+            "Menstruación" -> "reducir la intensidad, enfocarse en movilidad y recuperación"
+            "Fase Folicular" -> "aumentar la intensidad, ideal para entrenamientos de fuerza"
+            "Ovulación" -> "pico de energía, perfecto para entrenamientos de alta intensidad y RPs"
+            "Fase Lútea" -> "moderar la intensidad, enfocarse en ejercicios de tempo y resistencia"
+            else -> "ajustar según sensaciones"
         }
     }
 
@@ -128,16 +159,16 @@ Usa un tono motivador y profesional y añade emojis para hacer la lectura más a
             put("messages", JSONArray().apply {
                 put(JSONObject().apply {
                     put("role", "system")
-                    put("content", "Eres un experto entrenador personal y nutricionista certificado con 15 años de experiencia. Generas planes personalizados únicos basados en el perfil exacto de cada usuario, considerando todos sus datos específicos.")
+                    put("content", "Eres un experto entrenador personal y nutricionista. Generas planes 100% personalizados en formato JSON estructurado basado en el perfil del usuario.")
                 })
                 put(JSONObject().apply {
                     put("role", "user")
                     put("content", prompt)
                 })
             })
-            put("temperature", 0.8)
+            put("temperature", 0.7)
             put("max_tokens", 4096)
-            put("top_p", 0.9)
+            put("top_p", 1.0)
             put("stream", false)
         }
 
@@ -156,39 +187,38 @@ Usa un tono motivador y profesional y añade emojis para hacer la lectura más a
 
             if (!response.isSuccessful) {
                 val errorMsg = try {
-                    val errorJson = JSONObject(responseBody)
-                    errorJson.optJSONObject("error")?.optString("message") ?: responseBody
+                    JSONObject(responseBody).optJSONObject("error")?.optString("message") ?: responseBody
                 } catch (e: Exception) {
                     responseBody
                 }
-
-                throw IOException(
-                    "Error ${response.code}: $errorMsg"
-                )
+                throw IOException("Error ${response.code}: $errorMsg")
             }
-
             return responseBody
         }
     }
 
     private fun parseResponse(jsonResponse: String): AIResponse {
         try {
-            val json = JSONObject(jsonResponse)
-            val choices = json.getJSONArray("choices")
-            if (choices.length() == 0) {
-                throw Exception("No se generó ninguna respuesta de la IA")
-            }
-            val message = choices.getJSONObject(0).getJSONObject("message")
-            val fullText = message.getString("content").trim()
+            val outerJson = JSONObject(jsonResponse)
+            val contentJsonString = outerJson.getJSONArray("choices")
+                .getJSONObject(0)
+                .getJSONObject("message")
+                .getString("content")
+                .trim()
 
-            // Se mantiene la lógica de separación
-            val sections = fullText.split("===DIETA===", ignoreCase = true, limit = 2)
-            val routine = sections.getOrNull(0)?.trim() ?: ""
-            val diet = sections.getOrNull(1)?.trim() ?: ""
+            // Intenta limpiar la respuesta si contiene caracteres extraños antes o después del JSON
+            val cleanJsonString = contentJsonString.substring(contentJsonString.indexOf('{'), contentJsonString.lastIndexOf('}') + 1)
 
-            return AIResponse(routine = routine, diet = diet)
+            val contentJson = JSONObject(cleanJsonString)
+
+            val routineString = contentJson.getJSONObject("rutina").toString()
+            val dietString = contentJson.getJSONObject("dieta").toString()
+
+            return AIResponse(routine = routineString, diet = dietString)
         } catch (e: Exception) {
-            throw Exception("Error al procesar la respuesta de Scaleway: ${e.message}")
+            System.err.println("Error al procesar JSON de la IA: ${e.message}")
+            System.err.println("Respuesta recibida: $jsonResponse")
+            throw Exception("La respuesta de la IA no tiene el formato JSON esperado. Por favor, reintenta. Error: ${e.message}")
         }
     }
 }

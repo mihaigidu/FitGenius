@@ -7,13 +7,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,20 +20,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import com.example.fitgenius.data.AIResponse
-import com.example.fitgenius.data.UserProfile
-import com.example.fitgenius.ui.theme.PetrolGreen
+import com.example.fitgenius.data.*
+import com.example.fitgenius.ui.theme.MutedGreen
 import kotlinx.coroutines.launch
-import java.util.Calendar
-
-data class DayPlan(val title: String, val content: String)
-
-val LightGreenBackground = Color(0xFFF0FFF8)
-val MutedGreen = Color(0xFFE6F4EA)
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -47,12 +38,6 @@ fun HomeScreen(
 ) {
     val pagerState = rememberPagerState(pageCount = { 4 })
     val coroutineScope = rememberCoroutineScope()
-
-    val onNavigateToTab: (Int) -> Unit = { tabIndex ->
-        coroutineScope.launch {
-            pagerState.animateScrollToPage(tabIndex)
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -70,7 +55,7 @@ fun HomeScreen(
         Column(modifier = Modifier
             .padding(paddingValues)
             .background(MutedGreen)) {
-            TabRow(selectedTabIndex = pagerState.currentPage, containerColor = MutedGreen) {
+            PrimaryTabRow(selectedTabIndex = pagerState.currentPage, containerColor = MutedGreen) {
                 Tab(selected = pagerState.currentPage == 0, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(0) } }, text = { Text("Inicio") })
                 Tab(selected = pagerState.currentPage == 1, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(1) } }, text = { Text("Rutina") })
                 Tab(selected = pagerState.currentPage == 2, onClick = { coroutineScope.launch { pagerState.animateScrollToPage(2) } }, text = { Text("Nutrición") })
@@ -80,7 +65,15 @@ fun HomeScreen(
             HorizontalPager(state = pagerState) {
                 page ->
                 when (page) {
-                    0 -> GeneralScreen(userProfile = userProfile, aiResponse = aiResponse, isLoading = isLoading, errorMessage = errorMessage, onNavigateToTab = onNavigateToTab)
+                    0 -> GeneralScreen(
+                        userProfile = userProfile,
+                        aiResponse = aiResponse,
+                        isLoading = isLoading,
+                        errorMessage = errorMessage,
+                        onNavigateToTab = { tabIndex ->
+                            coroutineScope.launch { pagerState.animateScrollToPage(tabIndex) }
+                        }
+                    )
                     1 -> RoutineScreen(aiResponse = aiResponse)
                     2 -> DietScreen(aiResponse = aiResponse)
                     3 -> ProgressScreen()
@@ -91,11 +84,20 @@ fun HomeScreen(
 }
 
 @Composable
-fun GeneralScreen(userProfile: UserProfile?, aiResponse: AIResponse?, isLoading: Boolean, errorMessage: String?, onNavigateToTab: (Int) -> Unit) {
+fun GeneralScreen(
+    userProfile: UserProfile?,
+    aiResponse: AIResponse?,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onNavigateToTab: (Int) -> Unit
+) {
     when {
         isLoading -> LoadingState()
-        errorMessage != null -> ErrorState(errorMessage) { }
+        errorMessage != null -> ErrorState(errorMessage) { /* TODO: Retry logic */ }
         aiResponse != null && userProfile != null -> {
+            val weeklyWorkout = remember(aiResponse.routine) { parseWorkout(aiResponse.routine) }
+            val weeklyNutrition = remember(aiResponse.diet) { parseNutrition(aiResponse.diet) }
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -105,13 +107,16 @@ fun GeneralScreen(userProfile: UserProfile?, aiResponse: AIResponse?, isLoading:
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 ProfileSummaryCard(userProfile = userProfile)
-                TrainingSummaryCard(aiResponse = aiResponse) { onNavigateToTab(1) }
-                NutritionSummaryCard { onNavigateToTab(2) }
+                weeklyWorkout?.let {
+                    TrainingSummaryCard(it) { onNavigateToTab(1) }
+                }
+                weeklyNutrition?.let {
+                    NutritionSummaryCard(it) { onNavigateToTab(2) }
+                }
                 ProgressSummaryCard { onNavigateToTab(3) }
-                RecentActivitySection()
             }
         }
-        else -> NoPlanState { }
+        else -> NoPlanState { /* TODO: Navigate to plan creation */ }
     }
 }
 
@@ -125,7 +130,7 @@ fun ProfileSummaryCard(userProfile: UserProfile) {
             }
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 ProfileInfoChip("Objetivo", userProfile.goal, Icons.Default.CheckCircle, Modifier.weight(1f))
-                ProfileInfoChip("Nivel", userProfile.activityLevel, Icons.Default.TrendingUp, Modifier.weight(1f))
+                ProfileInfoChip("Nivel", userProfile.activityLevel, Icons.AutoMirrored.Filled.TrendingUp, Modifier.weight(1f))
             }
             Row {
                 ProfileInfoChip("Peso", "${userProfile.weight} kg", Icons.Default.FitnessCenter, Modifier.fillMaxWidth(0.5f).padding(end=6.dp))
@@ -145,24 +150,25 @@ fun ProfileInfoChip(title: String, value: String, icon: androidx.compose.ui.grap
     }
 }
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TrainingSummaryCard(aiResponse: AIResponse, onNavigate: () -> Unit) {
-    val todayRoutine = remember(aiResponse.routine) { getTodayPlan(aiResponse.routine) }
+fun TrainingSummaryCard(weeklyWorkout: WeeklyWorkout, onNavigate: () -> Unit) {
+    val todayWorkout = weeklyWorkout.week.firstOrNull { it.day.equals("Lunes", ignoreCase = true) } // TODO: Get today's workout dynamically
+
     Card(onClick = onNavigate, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.FitnessCenter, contentDescription = "Entrenamiento", tint = MaterialTheme.colorScheme.primary)
-                    Text("Entrenamiento", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Entrenamiento de Hoy", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
-                if (todayRoutine != null) {
-                    Text("Hoy: ${todayRoutine.title}", fontWeight = FontWeight.Bold)
-                    Text("4 ejercicios • 45 min", style = MaterialTheme.typography.bodyMedium, color = Color.Gray) // Placeholder
-                    FilterChip(selected = false, onClick = {}, label = { Text("Listo para entrenar") })
+                if (todayWorkout != null && todayWorkout.exercises.isNotEmpty()) {
+                    Text(todayWorkout.name, fontWeight = FontWeight.Bold)
+                    Text("${todayWorkout.exercises.size} ejercicios • ${todayWorkout.duration} min", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    FilterChip(selected = false, onClick = {}, label = { Text("¡A por ello!") })
                 } else {
-                    Text("Día de descanso.", style = MaterialTheme.typography.bodyMedium)
+                    Text("Día de descanso", style = MaterialTheme.typography.bodyMedium)
+                    Text("Aprovecha para recuperar energía", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                 }
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
@@ -170,19 +176,22 @@ fun TrainingSummaryCard(aiResponse: AIResponse, onNavigate: () -> Unit) {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NutritionSummaryCard(onNavigate: () -> Unit) {
+fun NutritionSummaryCard(weeklyNutrition: WeeklyNutrition, onNavigate: () -> Unit) {
+    val todayNutrition = weeklyNutrition.week.firstOrNull { it.day.equals("Lunes", ignoreCase = true) } // TODO: Get today's nutrition dynamically
+
     Card(onClick = onNavigate, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(Icons.Default.Fastfood, contentDescription = "Nutrición", tint = Color.Red.copy(alpha = 0.7f))
-                    Text("Nutrición", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Nutrición de Hoy", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
-                Text("1,850 / 2,200 kcal", fontWeight = FontWeight.Bold)
-                LinearProgressIndicator(progress = { 1850f / 2200f }, modifier = Modifier.fillMaxWidth())
-                Text("Te quedan 350 kcal", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                todayNutrition?.summary?.let {
+                    Text("${it.totalCalories} kcal", fontWeight = FontWeight.Bold)
+                    LinearProgressIndicator(progress = { 1f }, modifier = Modifier.fillMaxWidth()) // Placeholder, no tenemos datos de consumo
+                    Text("P: ${it.protein}g C: ${it.carbs}g G: ${it.fats}g", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                }
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
         }
@@ -196,339 +205,15 @@ fun ProgressSummaryCard(onNavigate: () -> Unit) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Icon(Icons.Default.Whatshot, contentDescription = "Progreso", tint = Color(0xFFFFA000))
-                    Text("Progreso", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Icon(Icons.Default.TrendingUp, contentDescription = "Progreso", tint = Color(0xFFFFA000))
+                    Text("Tu Progreso", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
-                Text("Racha: 7 días", fontWeight = FontWeight.Bold)
-                Text("¡Sigue así!", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-                FilterChip(selected = false, onClick = {}, label = { Text("🔥 En fuego") })
+                Text("Registra tu peso y sigue tu evolución", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                FilterChip(selected = false, onClick = {}, label = { Text("Ver estadísticas") })
             }
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = Color.Gray)
         }
     }
-}
-
-@Composable
-fun RecentActivitySection() {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Default.History, contentDescription = "Actividad Reciente", tint = MaterialTheme.colorScheme.primary)
-            Text("Actividad Reciente", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        }
-        Text("Tu actividad de esta semana", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-
-        Card(colors=CardDefaults.cardColors(containerColor = LightGreenBackground)){
-            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)){
-                Icon(Icons.Default.FitnessCenter, "", modifier = Modifier.background(Color.White, CircleShape).padding(8.dp))
-                Column(Modifier.weight(1f)){
-                    Text("Entrenamiento de Pierna", fontWeight = FontWeight.Bold)
-                    Text("Ayer • 45 minutos", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                }
-                Text("Completado", color = MaterialTheme.colorScheme.primary, modifier = Modifier.background(MutedGreen, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp))
-            }
-        }
-         Card(colors=CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))){
-            Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)){
-                Icon(Icons.Default.Fastfood, "", modifier = Modifier.background(Color.White, CircleShape).padding(8.dp), tint=Color.Blue.copy(alpha=0.8f))
-                Column(Modifier.weight(1f)){
-                    Text("Meta calórica alcanzada", fontWeight = FontWeight.Bold)
-                    Text("Hace 2 días", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                }
-                Icon(Icons.Default.Check, contentDescription = "Completado", tint = Color.Blue.copy(alpha=0.8f))
-            }
-        }
-    }
-}
-
-
-@Composable
-fun RoutineScreen(aiResponse: AIResponse?) {
-    if (aiResponse == null) {
-        NoPlanState { }
-        return
-    }
-    val routineDays = remember(aiResponse.routine) { parsePlan(aiResponse.routine) }
-    DayPager(plans = routineDays, initialIndex = getTodayIndex())
-}
-
-@Composable
-fun DietScreen(aiResponse: AIResponse?) {
-    if (aiResponse == null) {
-        NoPlanState { }
-        return
-    }
-    val dietDays = remember(aiResponse.diet) { parsePlan(aiResponse.diet) }
-    DayPager(plans = dietDays, initialIndex = getTodayIndex())
-}
-
-@Composable
-fun ProgressScreen() {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MutedGreen)
-            .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        ProgressSummarySection()
-        WeightEvolutionCard()
-        PersonalRecordsCard()
-        BodyMeasurementsCard()
-    }
-}
-
-@Composable
-fun ProgressSummarySection() {
-    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        ProgressSummaryChip("Racha", "7 días", "Máximo: 14 días", Icons.Default.Whatshot, Color(0xFFFFA000), Modifier.weight(1f))
-        ProgressSummaryChip("Entrenamientos", "24", "Este mes", Icons.Default.CalendarToday, MaterialTheme.colorScheme.primary, Modifier.weight(1f))
-        ProgressSummaryChip("Récords", "4", "Personales", Icons.Default.EmojiEvents, Color.Magenta, Modifier.weight(1f))
-    }
-}
-
-@Composable
-fun ProgressSummaryChip(title: String, value: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector, iconColor: Color, modifier: Modifier = Modifier) {
-    Card(modifier = modifier, shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = LightGreenBackground)) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Icon(icon, contentDescription = title, tint = iconColor)
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-        }
-    }
-}
-
-@Composable
-fun WeightEvolutionCard() {
-    var weightInput by remember { mutableStateOf("") }
-    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.TrendingUp, contentDescription = "Evolución del Peso", tint = MaterialTheme.colorScheme.primary)
-                Text("Evolución del Peso", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
-            Text("Tu progreso en las últimas semanas", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-            // Placeholder for the chart
-            Box(modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp)
-                .background(MutedGreen, RoundedCornerShape(12.dp)), contentAlignment = Alignment.Center) {
-                Text("[Gráfico de evolución del peso]", color = Color.Gray)
-            }
-            Text("Registrar nuevo peso", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = weightInput,
-                    onValueChange = { weightInput = it },
-                    label = { Text("Ej: 73.5") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f)
-                )
-                Button(onClick = { /* TODO */ }) {
-                    Icon(Icons.Default.Add, contentDescription = "Guardar")
-                    Text("Guardar")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun PersonalRecordsCard() {
-    var exerciseInput by remember { mutableStateOf("") }
-    var weightInput by remember { mutableStateOf("") }
-
-    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(Icons.Default.EmojiEvents, contentDescription = "Récords Personales", tint = Color(0xFFFFA000))
-                Text("Récords Personales", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
-            Text("Tus mejores marcas en cada ejercicio", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-            
-            // Placeholder Records
-            RecordItem(exercise = "Sentadilla", date = "15/11/2024", weight = "100 kg")
-            RecordItem(exercise = "Press de Banca", date = "12/11/2024", weight = "80 kg")
-            RecordItem(exercise = "Peso Muerto", date = "10/11/2024", weight = "120 kg")
-            
-            Spacer(modifier = Modifier.height(8.dp))
-            Text("Registrar nuevo récord", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            OutlinedTextField(value = exerciseInput, onValueChange = { exerciseInput = it }, label = { Text("Ejercicio (Ej: Sentadilla)") }, modifier = Modifier.fillMaxWidth())
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = weightInput, onValueChange = { weightInput = it }, label = { Text("Peso en kg") }, modifier = Modifier.weight(1f), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-                Button(onClick = { /* TODO */ }, colors=ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA000))) {
-                    Icon(Icons.Default.Add, contentDescription = "Añadir")
-                    Text("Añadir")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun RecordItem(exercise: String, date: String, weight: String) {
-    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MutedGreen.copy(alpha=0.5f))) {
-        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)){
-                 Icon(Icons.Default.EmojiEvents, contentDescription = null, tint=Color(0xFFFFA000), modifier = Modifier.background(Color.White, CircleShape).padding(6.dp))
-                 Column {
-                    Text(exercise, fontWeight = FontWeight.Bold)
-                    Text(date, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                }
-            }
-            Text(weight, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.background(Color.White, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp))
-        }
-    }
-}
-
-@Composable
-fun BodyMeasurementsCard() {
-    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                 Icon(Icons.Default.Straighten, contentDescription = "Medidas Corporales", tint = Color.Blue.copy(alpha=0.8f))
-                 Text("Medidas Corporales", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            }
-            Text("Registra y sigue la evolución de tus medidas", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-
-            // Placeholder measurements
-            MeasurementItem(name = "Pecho", value = "98 cm", change = "+2 cm este mes", positive = true)
-            MeasurementItem(name = "Cintura", value = "80 cm", change = "-3 cm este mes", positive = false)
-            MeasurementItem(name = "Brazos", value = "38 cm", change = "+1 cm este mes", positive = true)
-            MeasurementItem(name = "Piernas", value = "58 cm", change = "+1.5 cm este mes", positive = true)
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(onClick = { /* TODO */ }, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Default.Add, contentDescription = "Registrar Medidas")
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Registrar Medidas")
-            }
-        }
-    }
-}
-
-@Composable
-fun MeasurementItem(name: String, value: String, change: String, positive: Boolean) {
-    Card(shape = RoundedCornerShape(12.dp), colors = CardDefaults.cardColors(containerColor = MutedGreen.copy(alpha = 0.3f))) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Text(name, style = MaterialTheme.typography.titleMedium)
-            Text(value, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    if (positive) Icons.Default.TrendingUp else Icons.Default.TrendingDown, 
-                    contentDescription = null, 
-                    tint = if(positive) MaterialTheme.colorScheme.primary else Color.Red
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(change, color = if(positive) MaterialTheme.colorScheme.primary else Color.Red, style = MaterialTheme.typography.bodySmall)
-            }
-        }
-    }
-}
-
-fun getTodayIndex(): Int {
-    val calendar = Calendar.getInstance()
-    return (calendar.get(Calendar.DAY_OF_WEEK) + 5) % 7
-}
-
-fun getTodayPlan(planText: String): DayPlan? {
-    val plans = parsePlan(planText)
-    val todayIndex = getTodayIndex()
-    return plans.getOrNull(todayIndex)
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun DayPager(plans: List<DayPlan>, initialIndex: Int) {
-    val pagerState = rememberPagerState(initialPage = initialIndex) { plans.size }
-
-    HorizontalPager(
-        state = pagerState,
-        modifier = Modifier.background(MutedGreen),
-        contentPadding = PaddingValues(horizontal = 32.dp, vertical=16.dp)
-    ) { page ->
-        DayCard(
-            dayPlan = plans[page],
-            isToday = page == initialIndex
-        )
-    }
-}
-
-@Composable
-fun DayCard(dayPlan: DayPlan, isToday: Boolean) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(28.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(20.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Text(
-                text = dayPlan.title,
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = PetrolGreen
-                )
-            )
-
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 6.dp),
-                thickness = 1.dp,
-                color = PetrolGreen.copy(alpha = 0.4f)
-            )
-
-            Text(
-                text = dayPlan.content,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = Color.Black.copy(alpha = 0.85f),
-                    lineHeight = 24.sp
-                )
-            )
-        }
-    }
-}
-
-fun parsePlan(planText: String): List<DayPlan> {
-    if (planText.isBlank()) return emptyList()
-
-    val dayPlans = mutableListOf<DayPlan>()
-    var currentTitle: String? = null
-    val currentContent = StringBuilder()
-
-    val dayKeywords = listOf(
-        "LUNES", "MARTES", "MIÉRCOLES", "JUEVES",
-        "VIERNES", "SÁBADO", "DOMINGO",
-        "DÍA 1", "DÍA 2", "DÍA 3", "DÍA 4", "DÍA 5", "DÍA 6", "DÍA 7"
-    )
-
-    planText.lines().forEach { line ->
-        val trimmedLine = line.trim().removeSurrounding("**").trim()
-        val foundKeyword = dayKeywords.find { trimmedLine.uppercase().startsWith(it) }
-
-        if (foundKeyword != null) {
-            if (currentTitle != null)
-                dayPlans.add(DayPlan(currentTitle!!, currentContent.toString().trim()))
-
-            currentTitle = trimmedLine
-            currentContent.clear()
-        } else if (currentTitle != null) {
-            currentContent.append(line).append("\n")
-        }
-    }
-
-    if (currentTitle != null)
-        dayPlans.add(DayPlan(currentTitle!!, currentContent.toString().trim()))
-
-    return dayPlans
 }
 
 @Composable
@@ -538,19 +223,22 @@ fun NoPlanState(onCreatePlan: () -> Unit = {}) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Icon(Icons.Default.Dns, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(64.dp))
+        Spacer(Modifier.height(16.dp))
         Text(
-            "Bienvenido a FitGenius",
+            "Aún no tienes un plan",
             style = MaterialTheme.typography.headlineMedium
         )
         Text(
-            "Aún no tienes un plan generado.",
-            style = MaterialTheme.typography.bodyLarge
+            "Cuando tu plan esté listo, aparecerá aquí.",
+            style = MaterialTheme.typography.bodyLarge, color = Color.Gray,
+            textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(20.dp))
-        Button(
-            onClick = onCreatePlan
-        ) {
-            Text("Crear Plan", fontWeight = FontWeight.Bold)
+        Button(onClick = onCreatePlan) {
+            Icon(Icons.Default.Refresh, contentDescription = "Generar Plan")
+            Spacer(modifier = Modifier.width(8.dp))
+            Text("Generar Plan Ahora")
         }
     }
 }
@@ -564,10 +252,8 @@ fun LoadingState() {
     ) {
         CircularProgressIndicator()
         Spacer(Modifier.height(16.dp))
-        Text(
-            "Generando tu plan personalizado...",
-            style = MaterialTheme.typography.titleMedium
-        )
+        Text("Creando tu plan personalizado...", style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
+        Text("Esto puede tardar un minuto.", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
     }
 }
 
@@ -578,12 +264,13 @@ fun ErrorState(msg: String, onRetry: () -> Unit = {}) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
+        Icon(Icons.Default.CloudOff, contentDescription = null, tint = Color.Red, modifier = Modifier.size(64.dp))
+        Spacer(Modifier.height(16.dp))
         Text(
-            "Oops, algo fue mal",
+            "¡Ups! Algo ha ido mal",
             style = MaterialTheme.typography.headlineSmall.copy(color = Color.Red)
         )
-        Spacer(Modifier.height(8.dp))
-        Text(msg)
+        Text(msg, textAlign = TextAlign.Center, modifier = Modifier.padding(horizontal = 32.dp))
         Spacer(Modifier.height(16.dp))
         Button(onClick = onRetry) { Text("Reintentar") }
     }

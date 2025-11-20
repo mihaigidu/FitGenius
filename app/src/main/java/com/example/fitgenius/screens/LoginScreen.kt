@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.fitgenius.data.UserProfile
+import com.example.fitgenius.ui.theme.MutedGreen
 
 val AuthLightGreen = Color(0xFFF2FAF6)
 
