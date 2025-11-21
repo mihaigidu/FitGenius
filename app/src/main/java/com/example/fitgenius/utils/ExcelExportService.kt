@@ -78,7 +78,7 @@ class ExcelExportService {
     }
 
     private fun createWorkoutSheet(sheet: Sheet, workout: WeeklyWorkout, headerStyle: CellStyle, contentStyle: CellStyle, mergedStyle: CellStyle) {
-        val headers = listOf("Día", "Nombre Rutina", "Ejercicio", "Series", "Repeticiones", "Descanso")
+        val headers = listOf("Día", "Nombre Rutina", "Ejercicio", "Series", "Repeticiones", "Descanso", "Observaciones")
         val headerRow = sheet.createRow(0)
         headers.forEachIndexed { index, title ->
             headerRow.createCell(index).apply { 
@@ -106,6 +106,7 @@ class ExcelExportService {
                     row.createCell(3).setCellValue(exercise.series)
                     row.createCell(4).setCellValue(exercise.reps)
                     row.createCell(5).setCellValue(exercise.rest)
+                    row.createCell(6).setCellValue(exercise.observations)
                     (0 until headers.size).forEach { i -> row.getCell(i).cellStyle = contentStyle }
                 }
                 val lastRowForDay = rowNum - 1
@@ -124,6 +125,7 @@ class ExcelExportService {
         sheet.setColumnWidth(3, 15 * 256)
         sheet.setColumnWidth(4, 15 * 256)
         sheet.setColumnWidth(5, 15 * 256)
+        sheet.setColumnWidth(6, 40 * 256)
     }
 
     private fun createDietSheet(sheet: Sheet, diet: WeeklyNutrition, headerStyle: CellStyle, contentStyle: CellStyle, mergedStyle: CellStyle) {

@@ -46,20 +46,25 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
+
     implementation(libs.material3)
+
+    // Material 3 extra modules (usa catálogo)
+    implementation(libs.material3.windowsize)
+    implementation(libs.material3.adaptive.nav)
+
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.json:json:20231013")
     implementation("io.coil-kt:coil-compose:2.5.0")
-    implementation(libs.material3.windowsize)
-    implementation(libs.material3.adaptive.nav)
 
-    // Dependencias para Apache POI (Excel)
+    // Dependencias Apache POI usando catálogo
     implementation(libs.poi)
     implementation(libs.poi.ooxml)
 

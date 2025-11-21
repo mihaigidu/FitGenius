@@ -102,9 +102,9 @@ fun RoutineScreen(aiResponse: AIResponse?) {
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Text(dailyWorkout.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                        Text("${dailyWorkout.duration} min", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                        Text("${dailyWorkout.duration} min", style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(dailyWorkout.description, style = MaterialTheme.typography.bodyMedium)
+                        Text(dailyWorkout.description, style = MaterialTheme.typography.bodyLarge)
                     }
                 }
 
@@ -124,20 +124,20 @@ fun RoutineScreen(aiResponse: AIResponse?) {
 fun ExerciseCard(exercise: Exercise) {
     Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White), modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(exercise.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(exercise.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Spacer(modifier = Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Series", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                    Text(exercise.series, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text("Series", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    Text(exercise.series, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Reps", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                    Text(exercise.reps, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text("Reps", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    Text(exercise.reps, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Descanso", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-                    Text(exercise.rest, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text("Descanso", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    Text(exercise.rest, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -162,7 +162,8 @@ fun parseWorkout(jsonString: String): WeeklyWorkout? {
                         name = exerciseObject.getString("nombre"),
                         series = exerciseObject.getString("series"),
                         reps = exerciseObject.getString("repeticiones"),
-                        rest = exerciseObject.getString("descanso")
+                        rest = exerciseObject.getString("descanso"),
+                        observations = exerciseObject.optString("observaciones", "")
                     )
                 )
             }

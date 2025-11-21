@@ -406,6 +406,12 @@ fun PreferencesStep(profileState: UserProfile, onProfileChange: (UserProfile) ->
 
     FormSection("Tus Preferencias") {
         DropdownMenuField(
+            options = (1..7).map { "$it días" },
+            selectedOption = "${profileState.trainingDaysPerWeek} días",
+            onSelect = { onProfileChange(profileState.copy(trainingDaysPerWeek = it.filter { char -> char.isDigit() }.toIntOrNull() ?: 3)) },
+            label = "Días de entrenamiento a la semana"
+        )
+        DropdownMenuField(
             options = listOf("En casa", "Gimnasio"),
             selectedOption = profileState.trainingLocation,
             onSelect = { onProfileChange(profileState.copy(trainingLocation = it)) },

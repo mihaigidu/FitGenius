@@ -16,5 +16,6 @@ data class Exercise(
     val name: String,
     val series: String,
     val reps: String,
-    val rest: String
+    val rest: String,
+    val observations: String = ""
 )

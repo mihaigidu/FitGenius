@@ -117,14 +117,14 @@ fun DailySummaryCard(summary: DailySummary) {
     ) {
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Total del día", style = MaterialTheme.typography.titleMedium)
-                Text("${summary.totalCalories} kcal", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
-                Text(summary.extra, style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                Text("Total del día", style = MaterialTheme.typography.titleLarge)
+                Text("${summary.totalCalories} kcal", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
+                Text(summary.extra, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text("P: ${summary.protein}g", style = MaterialTheme.typography.bodyMedium)
-                Text("C: ${summary.carbs}g", style = MaterialTheme.typography.bodyMedium)
-                Text("G: ${summary.fats}g", style = MaterialTheme.typography.bodyMedium)
+                Text("P: ${summary.protein}g", style = MaterialTheme.typography.bodyLarge)
+                Text("C: ${summary.carbs}g", style = MaterialTheme.typography.bodyLarge)
+                Text("G: ${summary.fats}g", style = MaterialTheme.typography.bodyLarge)
             }
         }
     }
@@ -137,14 +137,14 @@ fun MealCard(meal: Meal) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
                 Column {
                     Text(meal.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(meal.time, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    Text(meal.time, style = MaterialTheme.typography.bodyLarge, color = Color.Gray)
                 }
-                Text("${meal.calories} kcal", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Text("${meal.calories} kcal", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             }
             Spacer(modifier = Modifier.height(12.dp))
             meal.foods.forEach {
                 food ->
-                Text("• $food", style = MaterialTheme.typography.bodyMedium)
+                Text("• $food", style = MaterialTheme.typography.bodyLarge)
             }
             Spacer(modifier = Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.SpaceAround, modifier = Modifier.fillMaxWidth()) {
@@ -159,8 +159,8 @@ fun MealCard(meal: Meal) {
 @Composable
 fun MacroInfo(name: String, amount: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(name, style = MaterialTheme.typography.labelMedium, color = Color.Gray)
-        Text(amount, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+        Text(name, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+        Text(amount, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
     }
 }
 

@@ -117,7 +117,7 @@ class ScalewayAIService {
             - Altura: ${profile.height} cm
             - Objetivo: ${profile.goal}
             - Nivel de Actividad: ${profile.activityLevel}
-            - Días de entrenamiento: ${profile.trainingDays}
+            - Días de entrenamiento: ${profile.trainingDaysPerWeek}
             - Lugar de entrenamiento: ${profile.trainingLocation}$menstrualInfo$favoriteExercisesInfo$allergiesInfo$foodPreferencesInfo
 
             **TU FILOSOFÍA:**

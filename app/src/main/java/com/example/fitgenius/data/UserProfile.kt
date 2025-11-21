@@ -20,7 +20,7 @@ data class UserProfile(
     var activityLevel: String = "Moderado",
 
     // Nuevos campos
-    var trainingDays: Int = 3,
+    var trainingDaysPerWeek: Int = 3, // RENOMBRADO
     var trainingLocation: String = "",
     var favoriteExercises: List<String> = emptyList(),
     var allergies: String = "",
