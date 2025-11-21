@@ -2,8 +2,10 @@ package com.example.fitgenius.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.* 
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -37,8 +39,12 @@ fun AuthScreen(navController: NavController, onUserRegistered: (UserProfile) -> 
     Scaffold(containerColor = AuthLightGreen) {
         padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .verticalScroll(rememberScrollState()) // Scroll añadido
+                .padding(horizontal = 24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(modifier = Modifier.height(48.dp))
 
@@ -58,8 +64,9 @@ fun AuthScreen(navController: NavController, onUserRegistered: (UserProfile) -> 
             } else {
                 RegisterContent(navController, onUserRegistered)
             }
+            
+            Spacer(modifier = Modifier.height(32.dp))
 
-            Spacer(modifier = Modifier.weight(1f))
             Text("Powered by AI • Diseñado para tu éxito", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -93,7 +100,11 @@ fun LoginContent(navController: NavController) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+    Card(
+        shape = RoundedCornerShape(16.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        modifier = Modifier.fillMaxWidth() // Ancho completo añadido
+    ) {
         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("Bienvenido de nuevo", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text("Ingresa tus credenciales para continuar", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
@@ -130,7 +141,11 @@ fun RegisterContent(navController: NavController, onUserRegistered: (UserProfile
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
-    Card(shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = Color.White)) {
+    Card(
+        shape = RoundedCornerShape(16.dp), 
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        modifier = Modifier.fillMaxWidth() // Ancho completo añadido
+    ) {
         Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Text("Crear cuenta", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text("Completa el formulario para comenzar tu transformación", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)

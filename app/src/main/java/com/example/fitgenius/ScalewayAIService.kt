@@ -108,7 +108,7 @@ class ScalewayAIService {
         """
 
         return """
-            Eres un experto entrenador personal y nutricionista. Tu misión es generar un plan de entrenamiento y nutrición para el siguiente usuario.
+            Eres un experto entrenador personal y nutricionista de alto nivel. Tu misión es diseñar un plan de transformación integral para el usuario, optimizado para sus objetivos específicos.
 
             **PERFIL DEL USUARIO:**
             - Género: ${profile.gender}
@@ -120,26 +120,34 @@ class ScalewayAIService {
             - Días de entrenamiento: ${profile.trainingDays}
             - Lugar de entrenamiento: ${profile.trainingLocation}$menstrualInfo$favoriteExercisesInfo$allergiesInfo$foodPreferencesInfo
 
-            **INSTRUCCIONES DE FORMATO OBLIGATORIO:**
-            Tu respuesta DEBE ser un único objeto JSON válido, sin texto, explicaciones, ni caracteres como ```json o ``` antes o después. El JSON debe tener dos claves en la raíz: "rutina" y "dieta".
+            **TU FILOSOFÍA:**
+            - **Motivación**: Incluye mensajes cortos pero poderosos en las descripciones para mantener al usuario motivado.
+            - **Ciencia**: Basa tus recomendaciones en principios científicos de hipertrofia, pérdida de grasa o rendimiento según corresponda.
+            - **Variedad**: EVITA LA MONOTONÍA. La dieta debe ser variada y deliciosa. El entrenamiento debe ser desafiante pero realizable.
 
-            **1. Estructura y Reglas para la clave "rutina":**
-            El valor debe ser un objeto con una clave "semana", que DEBE ser una lista con EXACTAMENTE 7 objetos, uno para cada día de Lunes a Domingo en orden. 
-            - Para los días de entrenamiento, sigue la estructura del ejemplo.
-            - Para los días de descanso, el campo "ejercicios" debe ser una lista vacía `[]` y el campo "descripcion" debe indicar claramente "Día de descanso" o "Descanso activo".
-            - Ejemplo de la estructura:
+            **INSTRUCCIONES DE FORMATO OBLIGATORIO (CRÍTICO):**
+            Tu respuesta DEBE ser ÚNICAMENTE un objeto JSON válido. NO incluyas texto introductorio, ni conclusiones, ni bloques de código markdown (```json). SOLO EL JSON PURO.
+
+            El JSON debe tener esta estructura exacta:
+            {
+              "rutina": { ... },
+              "dieta": { ... }
+            }
+
+            **1. Detalles de la Rutina ("rutina"):**
+            - Clave "semana": Lista de 7 objetos (Lunes a Domingo).
+            - Días de entrenamiento: Detalla ejercicios, series, repeticiones y descansos.
+            - Días de descanso: "ejercicios": [], "descripcion": "Día de recuperación activa/descanso total".
+            - Ejemplo estructura:
             $workoutJsonStructure
 
-            **2. Estructura y Reglas para la clave "dieta":**
-            El valor debe ser un objeto con una clave "semana", que DEBE ser una lista con EXACTAMENTE 7 objetos, uno para cada día de Lunes a Domingo en orden.
-            - **VARIEDAD**: Es fundamental que las comidas (desayuno, almuerzo, cena) sean variadas a lo largo de la semana para evitar la monotonía. No repitas las mismas comidas principales todos los días.
-            - Ejemplo de la estructura:
+            **2. Detalles de la Dieta ("dieta"):**
+            - Clave "semana": Lista de 7 objetos (Lunes a Domingo).
+            - **IMPORTANTE**: Genera menús diferentes para cada día.
+            - Ejemplo estructura:
             $nutritionJsonStructure
 
-            **REGLAS GENERALES DEL JSON:**
-            - El JSON debe estar perfectamente formado para ser analizado directamente.
-            - Todos los valores numéricos (series, repeticiones, calorías, etc.) deben ser strings.
-            - Adapta el plan a TODAS las preferencias y datos del usuario proporcionados.
+            Genera el plan ahora.
         """.trimIndent()
     }
 
@@ -159,7 +167,7 @@ class ScalewayAIService {
             put("messages", JSONArray().apply {
                 put(JSONObject().apply {
                     put("role", "system")
-                    put("content", "Eres un experto entrenador personal y nutricionista. Generas planes 100% personalizados en formato JSON estructurado basado en el perfil del usuario.")
+                    put("content", "Eres un experto entrenador personal y nutricionista de alto nivel. Generas planes de transformación 100% personalizados en formato JSON estricto.")
                 })
                 put(JSONObject().apply {
                     put("role", "user")

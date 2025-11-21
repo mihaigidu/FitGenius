@@ -6,13 +6,11 @@ plugins {
 
 android {
     namespace = "com.example.fitgenius"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.fitgenius"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
@@ -39,6 +37,9 @@ android {
     buildFeatures {
         compose = true
     }
+    packagingOptions {
+        resources.excludes.add("META-INF/versions/9/previous-compilation-data.bin")
+    }
 }
 
 dependencies {
@@ -49,14 +50,19 @@ dependencies {
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
-    implementation(libs.androidx.compose.material3)
+    implementation(libs.material3)
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("org.json:json:20231013")
     implementation("io.coil-kt:coil-compose:2.5.0")
-    implementation("androidx.compose.material3:material3-window-size-class")
-    implementation("androidx.compose.material3:material3-adaptive-navigation-suite:1.4.0")
+    implementation(libs.material3.windowsize)
+    implementation(libs.material3.adaptive.nav)
+
+    // Dependencias para Apache POI (Excel)
+    implementation(libs.poi)
+    implementation(libs.poi.ooxml)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
